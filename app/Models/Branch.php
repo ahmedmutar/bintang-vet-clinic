@@ -12,5 +12,5 @@ class Branch extends Model
 
     protected $guarded = ['id'];
 
-    protected $fillable = ['branch_code', 'branch_name', 'address', 'user_id'];
+    protected $fillable = ['branch_code', 'branch_name', 'address','payment_instruction', 'user_id'];
 }

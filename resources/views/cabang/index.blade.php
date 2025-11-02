@@ -35,6 +35,11 @@
               <span v-if="columnStatus.address == 'asc'" class="fa fa-sort-asc"></span>
               <span v-if="columnStatus.address == 'none'" class="fa fa-sort"></span>
             </th>
+            <th @click="onOrdering('payment_instruction')">Instruksi Pembayaran
+              <span v-if="columnStatus.payment_instruction == 'desc'" class="fa fa-sort-desc"></span>
+              <span v-if="columnStatus.payment_instruction == 'asc'" class="fa fa-sort-asc"></span>
+              <span v-if="columnStatus.payment_instruction == 'none'" class="fa fa-sort"></span>
+            </th>
             <th>Aksi</th>
           </tr>
         </thead>
@@ -44,19 +49,20 @@
             <td>@{{ item.branch_code }}</td>
             <td>@{{ item.branch_name }}</td>
             <td>@{{ item.address }}</td>
+            <td>@{{ item.payment_instruction }}</td>
             <td>
               <button type="button" class="btn btn-warning" @click="openFormUpdate(item)"><i class="fa fa-pencil" aria-hidden="true"></i></button>
               <button type="button" class="btn btn-danger" @click="openFormDelete(item)"><i class="fa fa-trash-o" aria-hidden="true"></i></button>
             </td>
           </tr>
           <tr class="text-center" v-if="!listCabang.length">
-            <td colspan="5">Tidak ada data.</td>
+            <td colspan="6">Tidak ada data.</td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
-  <!-- /.box-body -->  
+  <!-- /.box-body -->
 
   <div class="modal fade" id="modal-cabang">
     <div class="modal-dialog">
@@ -84,6 +90,11 @@
                 <label for="alamat">Alamat</label>
                 <input type="text" class="form-control" @keyup="alamatCabangKeyup" v-model="alamatCabang" placeholder="Masukan alamat cabang">
                 <div class="validate-error" v-if="alamatErr">Alamat minimal 5 karakter</div>
+              </div>
+              <div class="form-group">
+                <label for="instruksiPembayaran">Instruksi Pembayaran</label>
+                <input type="text" class="form-control" @keyup="instruksiPembayaranKeyup" v-model="instruksiPembayaran" placeholder="Masukan instruksi pembayaran">
+                <div class="validate-error" v-if="instruksiPembayaranErr">Instruksi Pembayaran minimal 5 karakter</div>
               </div>
               <div class="form-group">
                 <div class="validate-error" v-if="beErr" v-html="msgBeErr"></div>
