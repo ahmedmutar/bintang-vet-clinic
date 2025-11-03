@@ -13,7 +13,7 @@ use App\Models\list_of_payment_medicine_groups;
 use App\Models\payment_petshop_with_clinic;
 use DB;
 use Illuminate\Http\Request;
-use PDF;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class PembayaranController extends Controller
 {
@@ -1653,22 +1653,6 @@ class PembayaranController extends Controller
 
     $price_overall = $price_service + $price_item + $price_petshop;
 
-    // $data = [
-    //   'data_item' => $data_item,
-    //   'data_service' => $data_service,
-    //   'data_petshop' => $data_petshop,
-    //   'price_overall' => $price_overall,
-    //   'address' => $address->address,
-    //   'registration_number' => $data_patient[0]->id_number,
-    //   'id_patient' => $data_patient[0]->id_patient,
-    //   'pet_name' => $data_patient[0]->pet_name,
-    //   'owner_name' => $data_patient[0]->owner_name,
-    //   'cashier_name' => $data_cashier->cashier_name,
-    //   'time' => $data_cashier->paid_time
-    // ];
-
-    // info($data);
-
     $invoiceData = [
       'customer_name' => $data_patient[0]->owner_name,
       'customer_phone' => $data_patient[0]->owner_phone_number,
@@ -1697,7 +1681,10 @@ class PembayaranController extends Controller
       'payment_instruction' => $data_patient[0]->payment_instruction,
     ];
 
-    return view('invoice', compact('invoiceData', 'clinicData'));
+    $pdf = Pdf::loadView('invoice', compact('invoiceData', 'clinicData'));
+    $filename = $data_patient[0]->id_number . "-" . $data_patient[0]->pet_name . ".pdf";
+    return $pdf->download($filename);
+    // return view('invoice', compact('invoiceData', 'clinicData'));
     // $pdf = PDF::loadview('invoice', $data);
 
     // return $pdf->download($data_patient[0]->id_number . ' - ' . $data_patient[0]->pet_name . '.pdf');

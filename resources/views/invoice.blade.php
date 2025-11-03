@@ -18,7 +18,7 @@
       font-size: 12px;
       margin: 0;
       padding: 20px;
-      width: 1100px;
+      width: 1000px;
       /* Lebar disesuaikan untuk A4 landscape */
     }
 

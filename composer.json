@@ -9,7 +9,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.0",
-        "barryvdh/laravel-dompdf": "^0.9.0",
+        "barryvdh/laravel-dompdf": "^1.0",
         "codedge/laravel-fpdf": "^1.7",
         "crabbly/fpdf-laravel": "^1.0",
         "doctrine/dbal": "^2.0",
