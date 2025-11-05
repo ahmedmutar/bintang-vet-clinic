@@ -173,10 +173,10 @@
         <h1>{{ $clinicData['name']}}</h1>
         <p>{{ $clinicData['address']}}</p>
       </div>
-      <div class="header-right">
+      <!-- <div class="header-right">
         <img src="{{ public_path('assets/image/logo-vet-clinic.jpg') }}" width="100" height="100"
           class="img-style">
-      </div>
+      </div> -->
     </div>
 
     <hr>
