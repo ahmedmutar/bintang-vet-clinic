@@ -67,7 +67,7 @@ class CabangController extends Controller
 
     $validate = Validator::make($request->all(), [
       'KodeCabang' => 'required|string|max:5|unique:branches,branch_code',
-      'NamaCabang' => 'required|string|max:20',
+      'NamaCabang' => 'required|string|max:50',
       'Alamat' => 'required|string|min:5',
       'InstruksiPembayaran' => 'required|string|min:5',
     ]);
@@ -106,7 +106,7 @@ class CabangController extends Controller
 
     $validate = Validator::make($request->all(), [
       //'KodeCabang' => 'required|string|max:5', //|unique:branches,branch_code
-      'NamaCabang' => 'required|string|max:20',
+      'NamaCabang' => 'required|string|max:50',
       'Alamat' => 'required|string|min:5',
     ]);
 
