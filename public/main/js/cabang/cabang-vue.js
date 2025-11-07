@@ -8,6 +8,7 @@ $(document).ready(function() {
 			kodeCabang: '',
 			namaCabang: '',
       alamatCabang: '',
+      instruksiPembayaran: '',
 			titleModal: '',
 			stateModal: '',
 			msgContent: '',
@@ -16,6 +17,7 @@ $(document).ready(function() {
 			kdCabangErr2: false,
 			namaCabangErr: false,
       alamatErr: false,
+      instruksiPembayaranErr: false,
 			beErr: false,
       touchedForm: false,
 			msgBeErr: '',
@@ -33,13 +35,13 @@ $(document).ready(function() {
 		},
 		mounted() {
 			if (role.toLowerCase() !== 'admin') {
-				window.location.href = $('.baseUrl').val() + `/unauthorized`;	
+				window.location.href = $('.baseUrl').val() + `/unauthorized`;
 			}
 			this.getData();
 		},
 		computed: {
 			validateSimpanCabang: function() {
-				return this.kdCabangErr1 || this.kdCabangErr2 || this.beErr || this.namaCabangErr || this.alamatErr;
+				return this.kdCabangErr1 || this.kdCabangErr2 || this.beErr || this.namaCabangErr || this.alamatErr || this.instruksiPembayaranErr;
 			}
 		},
 		methods: {
@@ -58,6 +60,7 @@ $(document).ready(function() {
 				this.kodeCabang = item.branch_code;
 				this.namaCabang = item.branch_name;
         this.alamatCabang = item.address;
+        this.instruksiPembayaran = item.payment_instruction;
 				$('#modal-cabang').modal('show');
 			},
 			openFormDelete: function(item) {
@@ -76,6 +79,9 @@ $(document).ready(function() {
 				this.validationForm();
 			},
       alamatCabangKeyup: function(e) {
+        this.validationForm();
+      },
+      instruksiPembayaranKeyup: function(e) {
         this.validationForm();
       },
 			onOrdering: function(e) {
@@ -113,12 +119,13 @@ $(document).ready(function() {
 					});
 			},
 			submitCabang: function() {
-				
+
 				if (this.stateModal === 'add') {
 					const form_data = new FormData();
 					form_data.append('KodeCabang', this.kodeCabang);
 					form_data.append('NamaCabang', this.namaCabang);
           form_data.append('Alamat', this.alamatCabang);
+          form_data.append('InstruksiPembayaran', this.instruksiPembayaran);
 
 					this.processSave(form_data);
 				} else {
@@ -131,7 +138,7 @@ $(document).ready(function() {
 
 				if (this.stateModal === 'edit') {
 					// form_data.append('KodeCabang', this.kodeCabang);
-          const request = {id: this.idCabang, NamaCabang: this.namaCabang, Alamat: this.alamatCabang};
+          const request = {id: this.idCabang, NamaCabang: this.namaCabang, Alamat: this.alamatCabang, InstruksiPembayaran: this.instruksiPembayaran};
 					this.processEdit(request);
 				} else {
 					this.processDelete({ id: this.idCabang });
@@ -219,6 +226,7 @@ $(document).ready(function() {
 				this.kdCabangErr1 = (!this.kodeCabang && this.stateModal == 'edit') ? true : false;
 				this.namaCabangErr = (!this.namaCabang) ? true : false;
         this.alamatErr = (this.alamatCabang.length < 5) ? true : false;
+        this.instruksiPembayaranErr = (this.instruksiPembayaran.length < 5) ? true : false;
 				this.beErr = false;
 			},
 			refreshVariable: function() {
@@ -226,6 +234,7 @@ $(document).ready(function() {
 				this.kdCabangErr1 = false; this.kdCabangErr2 = false;
 				this.namaCabangErr = false; this.touchedForm = false;
         this.alamatCabang = ''; this.alamatErr = false;
+        this.instruksiPembayaran = ''; this.instruksiPembayaranErr = false;
 				this.beErr = false;
 			}
 		}

@@ -271,7 +271,7 @@ $(document).ready(function() {
               + `<td>${v.email}</td>`
               + `<td>${v.role}</td>`
               + `<td>${v.branch_name}</td>`
-              + `<td>${v.status ? 'Aktif' : 'Non Aktif'}</td>`
+              + `<td>${v.status === '1' ? 'Aktif' : 'Non Aktif'}</td>`
               + `<td>${v.created_by}</td>`
               + `<td>${v.created_at}</td>`
               + `<td>
