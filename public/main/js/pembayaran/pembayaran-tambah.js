@@ -373,9 +373,53 @@ $(document).ready(function () {
   }
 
   function processPrint(check_up_result_id, service_payment, item_payment) {
-    let url = '/pembayaran/print/' + check_up_result_id + '/' + service_payment + '/' + item_payment;
-    window.open($('.baseUrl').val() + url, '_blank');
-  }
+    // 1. Definisikan endpoint untuk mendapatkan file PDF (receipt)
+    let downloadUrl = '/pembayaran/print/' + check_up_result_id + '/' + service_payment + '/' + item_payment;
+    //let downloadUrl = $('.baseUrl').val() + '/api/pembayaranpetshop/generate-receipt/' + master_payment_id;
+
+    $.ajax({
+        url: downloadUrl,
+        headers: { 'Authorization': `Bearer ${token}` }, // Pastikan token didefinisikan di scope ini
+        type: 'GET',
+        xhrFields: { responseType: 'blob' }, // Kunci: meminta data biner (blob)
+        beforeSend: function () {
+            // Opsional: tampilkan loading screen jika perlu, tapi karena sudah ada di AJAX utama, ini bisa dilewati
+        },
+        success: function(data, status, xhr) {
+            // Logika unduh file
+            let disposition = xhr.getResponseHeader('content-disposition');
+            // Ambil nama file dari header Content-Disposition
+            let matches = /"([^"]*)"/.exec(disposition);
+            let filename = (matches != null && matches[1] ? matches[1] : `receipt-${check_up_result_id}.pdf`);
+
+            // 2. Buat Blob dengan MIME Type PDF
+            let blob = new Blob([data], {type:'application/pdf'});
+            let url = URL.createObjectURL(blob);
+
+            // 3. Pemicu Unduh
+            let a = document.createElement("a");
+            a.href = url;
+            a.download = filename; // Nama file yang akan diunduh
+            document.body.appendChild(a);
+            a.click();
+
+            // Bersihkan URL object setelah diunduh
+            URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+        },
+        error: function(err) {
+            console.error('Gagal mengunduh PDF receipt:', err);
+            alert('Gagal mengunduh struk pembayaran.');
+            // Penanganan error 401 bisa ditambahkan di sini jika perlu
+        }
+    });
+}
+
+  // function processPrint(check_up_result_id, service_payment, item_payment) {
+  //   let url = '/pembayaran/print/' + check_up_result_id + '/' + service_payment + '/' + item_payment;
+  //   window.open($('.baseUrl').val() + url, '_blank');
+  // }
 
   function processCalculationTagihan() {
     let total = 0;

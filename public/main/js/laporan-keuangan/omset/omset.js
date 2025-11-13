@@ -166,10 +166,12 @@ $(document).ready(function () {
         $("#loading-screen").show();
       },
       success: function (resp) {
-        const getData = resp;
+        const getData = resp.datas;
+        const headers = resp.branches;
         let loadLaporanKeuanganOmset = "";
         let headLaporanKeuanganOmset = "";
-
+        let thHTML = "";
+        // console.log(resp.branches);
         $("#list-laporan-keuangan-omset tr").remove();
         $("#head-laporan-keuangan-omset tr").remove();
 
@@ -188,142 +190,50 @@ $(document).ready(function () {
                 `<tr>` +
                 `<td>${++idx}</td>` +
                 `<td>${v.dates}</td>` +
-                `<td>${
-                  Number(v.total_omset || 0).toLocaleString('id-ID')
-                  // typeof v.total_omset == "number"
-                  //   ? v.total_omset
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
+                `<td>${Number(v.total_omset || 0).toLocaleString(
+                  "id-ID"
+                )}</td>` +
                 `</tr>`;
             });
           } else {
             loadLaporanKeuanganOmset += `<tr class="text-center"><td colspan="3">Tidak ada data.</td></tr>`;
           }
         } else {
+          headers.forEach((branch) => {
+            thHTML += `<th class="onOrdering" data='${branch.branch_slug}' orderby="none">${branch.branch_name} <span class="fa fa-sort"></span></th>`;
+          });
+
           headLaporanKeuanganOmset +=
             `<tr>` +
             `<th>No</th>` +
             `<th class="onOrdering" data='dates' orderby="none">Periode <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='total_omset' orderby="none">Total Omset (Rp) <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='veteran_bintaro' orderby="none">Veteran Bintaro <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='tanjung_duren_raya' orderby="none">Tanjung Duren Raya <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='pasar_rebo' orderby="none">Pasar Rebo <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='srengseng_kembangan' orderby="none">Srengseng Kembangan <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='kahfi' orderby="none">Kahfi <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='bsd' orderby="none">BSD <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='kemayoran' orderby="none">Kemayoran <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='tanah_abang' orderby="none">Tanah Abang <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='rawamangun' orderby="none">Rawamangun <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='pondok_gede' orderby="none">Pondok Gede <span class="fa fa-sort"></span></th>` +
-            `<th class="onOrdering" data='cirendeu' orderby="none">Cirendeu <span class="fa fa-sort"></span></th>` +
-            `` +
-            `</tr>`;
+            `<th class="onOrdering" data='total_omset' orderby="none">Total Omset (Rp) <span class="fa fa-sort"></span></th>
+            '${thHTML}' </tr>`;
 
           if (getData.length) {
+            // ambil semua key dari object pertama
+            const keys = Object.keys(getData[0]);
+
+            // pastikan urutannya sesuai: dates → total_omset → sisanya
+            const fixedKeys = ["dates", "total_omset"];
+            const branchKeys = keys.filter((k) => !fixedKeys.includes(k)); // ambil selain dates & total_omset
+
             $.each(getData, function (idx, v) {
-              loadLaporanKeuanganOmset +=
-                `<tr>` +
-                `<td>${++idx}</td>` +
-                `<td>${v.dates}</td>` +
-                `<td>${
-                  Number(v.total_omset || 0).toLocaleString('id-ID')
-                  // typeof v.total_omset == "number"
-                  //   ? v.total_omset
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.veteran_bintaro || 0).toLocaleString('id-ID')
-                  // typeof v.veteran_bintaro == "number"
-                  //   ? v.veteran_bintaro
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.tanjung_duren_raya || 0).toLocaleString('id-ID')
-                  // typeof v.tanjung_duren_raya == "number"
-                  //   ? v.tanjung_duren_raya
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.pasar_rebo || 0).toLocaleString('id-ID')
-                  // typeof v.pasar_rebo == "number"
-                  //   ? v.pasar_rebo
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.srengseng_kembangan || 0).toLocaleString('id-ID')
-                  // typeof v.srengseng_kembangan == "number"
-                  //   ? v.srengseng_kembangan
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.kahfi || 0).toLocaleString('id-ID')
-                  // typeof v.kahfi == "number"
-                  //   ? v.kahfi
-                  //   .toString()
-                  //   .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.bsd || 0).toLocaleString('id-ID')
-                  // typeof v.bsd == "number"
-                  //   ? v.bsd
-                  //   .toString()
-                  //   .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.kemayoran || 0).toLocaleString('id-ID')
-                  // typeof v.kemayoran == "number"
-                  //   ? v.kemayoran
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.tanah_abang || 0).toLocaleString('id-ID')
-                  // typeof v.tanah_abang == "number"
-                  //   ? v.tanah_abang
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.rawamangun || 0).toLocaleString('id-ID')
-                  // typeof v.rawamangun == "number"
-                  //   ? v.rawamangun
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.pondok_gede || 0).toLocaleString('id-ID')
-                  // typeof v.pondok_gede == "number"
-                  //   ? v.pondok_gede
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `<td>${
-                  Number(v.cirendeu || 0).toLocaleString('id-ID')
-                  // typeof v.cirendeu == "number"
-                  //   ? v.cirendeu
-                  //       .toString()
-                  //       .replace(/\B(?=(\d{3})+(?!\d))/g, ".")
-                  //   : ""
-                }</td>` +
-                `</tr>`;
+              let row = `<tr>`;
+              row += `<td>${++idx}</td>`;
+              row += `<td>${v.dates}</td>`;
+              row += `<td>${Number(v.total_omset || 0).toLocaleString(
+                "id-ID"
+              )}</td>`;
+
+              branchKeys.forEach((key) => {
+                row += `<td>${Number(v[key] || 0).toLocaleString(
+                  "id-ID"
+                )}</td>`;
+              });
+
+              row += `</tr>`;
+              loadLaporanKeuanganOmset += row;
             });
           } else {
             loadLaporanKeuanganOmset += `<tr class="text-center"><td colspan="3">Tidak ada data.</td></tr>`;

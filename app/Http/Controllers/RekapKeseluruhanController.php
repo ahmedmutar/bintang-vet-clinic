@@ -12,7 +12,6 @@ class RekapKeseluruhanController extends Controller
 {
   public function index(Request $request)
   {
-
     $lastPeriods = collect();
     $listDates = [];
 
@@ -77,7 +76,11 @@ class RekapKeseluruhanController extends Controller
         ->select('id', 'branch_name', DB::raw("'$request->connection' as connection"))
         ->where('isDeleted', '=', 0)
         ->where('id', '=', $request->branch_id)
-        ->get();
+        ->get()
+        ->map(function ($item) {
+          $item->branch_slug = Str::slug($item->branch_name, '_');
+          return $item;
+        });
 
       foreach ($lastPeriods as $val) {
 
@@ -219,7 +222,13 @@ class RekapKeseluruhanController extends Controller
         ->select('id', 'branch_name',  DB::raw("'mysql_fifth' as connection"))
         ->where('isDeleted', '=', 0)->get();
 
-      $branches = $admin->merge($tj)->merge($hello)->merge($helloKahfi)->merge($stella)->values();
+      $branches = $admin->merge($tj)->merge($hello)->merge($helloKahfi)->merge($stella)
+        ->map(function ($item) {
+          // tambahkan kolom baru tanpa mengubah branch_name asli
+          $item->branch_slug = Str::slug($item->branch_name, '_');
+          return $item;
+        })
+        ->values();
 
       $i = 0;
       foreach ($lastPeriods as $val) {
@@ -331,11 +340,13 @@ class RekapKeseluruhanController extends Controller
 
         $i++;
       }
-      return $updatedCollection->toArray();
+      // return 'test';
       //return $updatedCollection;
+      return response()->json([
+        'datas' => $updatedCollection->toArray(),
+        'branches' => $branches
+      ], 200);
     }
-
-    return response()->json($datas, 200);
   }
 
   public function chart(Request $request)

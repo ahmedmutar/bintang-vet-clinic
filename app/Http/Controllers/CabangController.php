@@ -24,6 +24,7 @@ class CabangController extends Controller
         'branches.id',
         'branch_code',
         'branch_name',
+        'payment_instruction',
         'users.fullname as created_by',
         DB::raw("DATE_FORMAT(branches.created_at, '%d %b %Y') as created_at"),
         'branches.address'
@@ -34,6 +35,7 @@ class CabangController extends Controller
       $branch = $branch->where('branch_code', 'like', '%' . $request->keyword . '%')
         ->orwhere('branches.branch_name', 'like', '%' . $request->keyword . '%')
         ->orwhere('branches.address', 'like', '%' . $request->keyword . '%')
+        ->orwhere('branches.payment_instruction', 'like', '%' . $request->keyword . '%')
         ->orwhere('users.fullname', 'like', '%' . $request->keyword . '%');
     }
 
@@ -65,8 +67,9 @@ class CabangController extends Controller
 
     $validate = Validator::make($request->all(), [
       'KodeCabang' => 'required|string|max:5|unique:branches,branch_code',
-      'NamaCabang' => 'required|string|max:20',
+      'NamaCabang' => 'required|string|max:50',
       'Alamat' => 'required|string|min:5',
+      'InstruksiPembayaran' => 'required|string|min:5',
     ]);
 
     if ($validate->fails()) {
@@ -82,6 +85,7 @@ class CabangController extends Controller
       'branch_code' => $request->KodeCabang,
       'branch_name' => $request->NamaCabang,
       'address' => $request->Alamat,
+      'payment_instruction' => $request->InstruksiPembayaran,
       'user_id' => $request->user()->id,
     ]);
 
@@ -102,7 +106,7 @@ class CabangController extends Controller
 
     $validate = Validator::make($request->all(), [
       //'KodeCabang' => 'required|string|max:5', //|unique:branches,branch_code
-      'NamaCabang' => 'required|string|max:20',
+      'NamaCabang' => 'required|string|max:50',
       'Alamat' => 'required|string|min:5',
     ]);
 
@@ -126,6 +130,7 @@ class CabangController extends Controller
 
     $branch->branch_name = $request->NamaCabang;
     $branch->address = $request->Alamat;
+    $branch->payment_instruction = $request->InstruksiPembayaran;
     $branch->user_update_id = $request->user()->id;
     $branch->updated_at = \Carbon\Carbon::now();
     $branch->save();

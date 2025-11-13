@@ -662,9 +662,29 @@ class DaftarBarangController extends Controller
             // }
         }
 
-        $file = $request->file('file');
 
-        Excel::import(new MultipleSheetImportDaftarBarang($request->user()->id), $file);
+        for ($i = 1; $i < count($result); $i++) {
+
+            $expiredDate = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($result[$i]['tanggal_kedaluwarsa_barang_ddmmyyyy']);
+            $expiredDateFormatted = $expiredDate->format('Y-m-d');
+            $diff_expired = Carbon::parse(now())->diffInDays($expiredDateFormatted, false);
+
+            DB::table('list_of_items')->insert([
+                'item_name' => $result[$i]['nama_barang'],
+                'total_item' => $result[$i]['jumlah_barang'],
+                'limit_item' => $result[$i]['limit_barang'],
+                'expired_date' => $expiredDateFormatted,
+                'unit_item_id' => $result[$i]['kode_satuan_barang'],
+                'category_item_id' => $result[$i]['kode_kategori_barang'],
+                'branch_id' => $result[$i]['kode_cabang_barang'],
+                'diff_item' => $result[$i]['jumlah_barang'] - $result[$i]['limit_barang'],
+                'diff_expired_days' => $diff_expired,
+                'user_id' => $request->user()->id,
+                'isDeleted' => 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'message' => 'Berhasil mengupload Barang',

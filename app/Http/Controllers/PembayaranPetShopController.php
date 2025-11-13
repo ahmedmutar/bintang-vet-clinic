@@ -317,7 +317,7 @@ class PembayaranPetShopController extends Controller
             ->join('price_item_pet_shops as pip', 'loi.id', 'pip.list_of_item_pet_shop_id')
             ->select('pip.id', 'loi.item_name as item_name', DB::raw("TRIM(pip.selling_price)+0 as selling_price"))
             ->where('pip.isDeleted', '=', 0)
-            ->where('pip.branch_id', '=', $request->branch_id)
+            ->where('loi.branch_id', '=', $request->branch_id)
             ->get();
 
         return response()->json($item, 200);
