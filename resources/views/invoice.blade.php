@@ -245,7 +245,7 @@
         @endforelse
 
 
-        @forelse ($invoiceData['data_pet_shop'] ?? [] as $petshop)
+        @forelse ($invoiceData['data_petshop'] ?? [] as $petshop)
         <tr>
           <td>{{ $petshop->item_name }}</td>
           <td class="qty">{{ $petshop->quantity }}</td>
