@@ -854,7 +854,7 @@ class RekapController extends Controller
 
     $branches = Branch::find($request->branch_id);
 
-    $filename = 'Rekapitulasi Bintang Vet Cabang ' . $branches->branch_name . ' ' . $monthName . ' ' . $request->year;
+    $filename = 'Rekapitulasi Stella Vet Cabang ' . $branches->branch_name . ' ' . $monthName . ' ' . $request->year;
 
     $writer = IOFactory::createWriter($spreadsheet, 'Xlsx');
     $newFilePath = public_path() . '/result_download/' . $filename; // Set the desired path

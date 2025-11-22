@@ -60,7 +60,7 @@
         </tr>
         <tr>
             <td class="center-content">
-                <label class="boldtext">Bintang Vet Clinic</label>
+                <label class="boldtext">Stella Vet Clinic</label>
             </td>
         </tr>
         <tr>

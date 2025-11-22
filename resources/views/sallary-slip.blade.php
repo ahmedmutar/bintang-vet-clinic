@@ -101,7 +101,7 @@
     <table style="width: 100%">
         <tr>
             <td style="width: 33%">
-                <label class="titlePetName">Bintang Vet Clinic</label>
+                <label class="titlePetName">Stella Vet Clinic</label>
             </td>
             <td>
 

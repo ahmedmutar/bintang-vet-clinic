@@ -54,7 +54,7 @@
 				<!-- mini logo for sidebar mini 50x50 pixels -->
 				<span class="logo-mini"><b>B</b>VC</span>
 				<!-- logo for regular state and mobile devices -->
-				<span class="logo-lg"><b>BINTANG</b> <b>VET</b> CLINIC</span>
+				<span class="logo-lg"><b>STELLA</b> <b>VET</b> CLINIC</span>
 			</a>
 
 			<!-- Header Navbar: style can be found in header.less -->
@@ -141,7 +141,7 @@
 			<div class="pull-right hidden-xs">
 				<b>Version</b> 1.0
 			</div>
-			<strong>Copyright &copy; <script>document.write(new Date().getFullYear())</script> <a href="/">Bintang Vet Clinic</a></strong> | Powered by Scoop Tech
+			<strong>Copyright &copy; <script>document.write(new Date().getFullYear())</script> <a href="/">Stella Vet Clinic</a></strong> | Powered by Scoop Tech
 		</footer>
 
 		<!-- Control Sidebar -->
