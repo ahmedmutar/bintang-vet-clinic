@@ -38,7 +38,7 @@
 
     <div class="header-login-section">
       <div class="title-login">Sistem Administrasi Stella Vet Clinic</div>
-      <img src="{{ asset('assets/image/logo-vet-clinic.jpg') }}">
+      <img src="{{ asset('assets/image/logo-stella-vet.jpg') }}">
     </div>
     <div class="login-container">
     <div v-if="showAlert" class="alert alert-dismissible"

@@ -3,7 +3,7 @@
 	<!-- sidebar: style can be found in sidebar.less -->
 	<section class="sidebar">
 		<div class="section-logo-vet-clinic">
-			<img src="{{ asset('assets/image/logo-vet-clinic.jpg') }}">
+			<img src="{{ asset('assets/image/logo-stella-vet.jpeg') }}">
 		</div>
 		<ul class="sidebar-menu" data-widget="tree">
 			<li class="header">MENU UTAMA</li>
