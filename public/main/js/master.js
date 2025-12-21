@@ -41,7 +41,7 @@ $(document).ready(function() {
 
     const hostname = window.location.hostname;
 
-    if (hostname === 'admin.bintangvet.com' || hostname === 'uat.bintangvet.com' || hostname === '127.0.0.1') {
+    if (hostname === 'bintangvet.stellavet.net' || hostname === 'uat.stellavet.net' || hostname === '127.0.0.1') {
 
       if (role === 'admin') {
         $('.menuOmset').show();
