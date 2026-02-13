@@ -167,7 +167,7 @@
 <body>
 
   <div class="container">
-    {{-- BAGIAN 1: HEADER & INFO PERUSAHAAN (Bintang Vet Clinic) --}}
+    {{-- BAGIAN 1: HEADER & INFO PERUSAHAAN (Astra Vet Clinic) --}}
     <div class="header">
       <div class="header-left">
         <h1>{{ $clinicData['name']}}</h1>

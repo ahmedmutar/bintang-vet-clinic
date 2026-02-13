@@ -141,7 +141,7 @@
 			<div class="pull-right hidden-xs">
 				<b>Version</b> 1.0
 			</div>
-			<strong>Copyright &copy; <script>document.write(new Date().getFullYear())</script> <a href="/">Bintang Vet Clinic</a></strong> | Powered by Scoop Tech
+			<strong>Copyright &copy; <script>document.write(new Date().getFullYear())</script> <a href="/">Astra Vet Clinic</a></strong> | Powered by Scoop Tech
 		</footer>
 
 		<!-- Control Sidebar -->
