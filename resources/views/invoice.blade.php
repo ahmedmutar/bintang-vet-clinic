@@ -167,14 +167,14 @@
 <body>
 
   <div class="container">
-    {{-- BAGIAN 1: HEADER & INFO PERUSAHAAN (Bintang Vet Clinic) --}}
+    {{-- BAGIAN 1: HEADER & INFO PERUSAHAAN (Stella Vet Clinic) --}}
     <div class="header">
       <div class="header-left">
         <h1>{{ $clinicData['name']}}</h1>
         <p>{{ $clinicData['address']}}</p>
       </div>
       <!-- <div class="header-right">
-        <img src="{{ public_path('assets/image/logo-vet-clinic.jpg') }}" width="100" height="100"
+        <img src="{{ public_path('assets/image/stella.jpeg') }}" width="100" height="100"
           class="img-style">
       </div> -->
     </div>
