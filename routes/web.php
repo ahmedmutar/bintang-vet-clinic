@@ -201,7 +201,7 @@ Route::post('/print', function(Request $request) {
       // info('data', $request->data);
       // Nama 14 karakter, qty 3, Harga 6, total 6
       $printer->setJustification(Printer::JUSTIFY_CENTER);
-      $printer -> text('Bintang Vet Clinic' . "\n", Printer::JUSTIFY_CENTER);
+      $printer -> text('Kuma Vet Clinic' . "\n", Printer::JUSTIFY_CENTER);
       $printer->setJustification(Printer::JUSTIFY_LEFT);
       $printer -> text($request->address. "\n");
       $printer -> text('--------------------------------'. "\n");

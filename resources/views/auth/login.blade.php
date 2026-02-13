@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <title>Sistem Administrasi Bintang Vet Clinic | Masuk</title>
+  <title>Sistem Administrasi Kuma Vet Clinic | Masuk</title>
   <!-- Tell the browser to be responsive to screen width -->
   <meta content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" name="viewport">
-  <link rel="shortcut icon" type="image/jpg" href="{{ asset('assets/image/logo-vet-clinic.jpg') }}">
+  <link rel="shortcut icon" type="image/jpg" href="{{ asset('assets/image/kuma.jpeg') }}">
   <!-- Bootstrap 3.3.7 -->
   <link rel="stylesheet" href="{{ asset('bootstrap/dist/css/bootstrap.min.css') }}">
   <!-- Font Awesome -->
@@ -35,10 +35,10 @@
 <body class="hold-transition login-page">
 <div class="login-box" id="login-app">
   <input ref="baseUrl" type="hidden" value="{{ url('/') }}"/>
-  
+
     <div class="header-login-section">
-      <div class="title-login">Sistem Administrasi Bintang Vet Clinic</div>
-      <img src="{{ asset('assets/image/logo-vet-clinic.jpg') }}">
+      <div class="title-login">Sistem Administrasi Kuma Vet Clinic</div>
+      <img src="{{ asset('assets/image/kuma.jpeg') }}">
     </div>
     <div class="login-container">
     <div v-if="showAlert" class="alert alert-dismissible"
@@ -62,14 +62,14 @@
           <input v-bind:type="passwordType" class="form-control" :class="{'error-form-control' : passwordError}"
             @keyup="passwordKeyup" @keydown.enter="onSubmit" placeholder="Kata Sandi" v-model="form.password">
 
-          <span @click="togglePassword" class="glyphicon icon-password" 
+          <span @click="togglePassword" class="glyphicon icon-password"
             :class="{ 'glyphicon-eye-open': showPassword, 'glyphicon-eye-close': !showPassword }"></span>
 
           <span class="validate-error">@{{passwordError ? 'Kata Sandi perlu di isi' : ''}}</span>
         </div>
         <div class="row">
           <div class="col-md-12">
-            <button type="button" :disabled="disableSubmit" 
+            <button type="button" :disabled="disableSubmit"
             class="btn btn-primary btn-block btn-flat m-b-15px" @click="onSubmit">Masuk</button>
           </div>
         </div>
