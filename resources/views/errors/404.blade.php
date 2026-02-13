@@ -6,7 +6,7 @@
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>404 Page</title>
 
-  <link rel="shortcut icon" type="image/jpg" href="{{ asset('assets/image/logo-vet-clinic.jpg') }}">
+  <link rel="shortcut icon" type="image/jpg" href="{{ asset('assets/image/astra.jpeg') }}">
   <link rel="stylesheet" href="{{ asset('bower_components/font-awesome/css/font-awesome.min.css') }}">
   <!-- Bootstrap 3.3.7 -->
   <link rel="stylesheet" href="{{ asset('bootstrap/dist/css/bootstrap.min.css') }}">
@@ -18,7 +18,7 @@
    <!-- Google Font -->
    <link rel="stylesheet"
    href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic">
-   
+
   <!-- jQuery 3 -->
   <script src="{{ asset('bower_components/jquery/dist/jquery.min.js') }}"></script>
   <!-- Bootstrap 3.3.7 -->
@@ -54,7 +54,7 @@
 <script>
   $(document).ready(function() {
     $('#backToHome').click(function() {
-      window.location.href = $('.baseUrl').val();		
+      window.location.href = $('.baseUrl').val();
     })
   });
 </script>
