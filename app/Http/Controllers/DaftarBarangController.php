@@ -663,7 +663,7 @@ class DaftarBarangController extends Controller
         }
 
 
-        for ($i = 1; $i < count($result); $i++) {
+        for ($i = 0; $i < count($result); $i++) {
 
             $expiredDate = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($result[$i]['tanggal_kedaluwarsa_barang_ddmmyyyy']);
             $expiredDateFormatted = $expiredDate->format('Y-m-d');
