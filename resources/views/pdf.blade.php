@@ -54,13 +54,13 @@
     <table>
         <tr>
             <td class="center-content">
-                <img src="{{ public_path('assets/image/logo-vet-clinic.jpg') }}" width="100" height="100"
+                <img src="{{ public_path('assets/image/cosmo-image.jpeg') }}" width="100" height="100"
                     class="img-style">
             </td>
         </tr>
         <tr>
             <td class="center-content">
-                <label class="boldtext">Bintang Vet Clinic</label>
+                <label class="boldtext">Cosmo Vet Clinic</label>
             </td>
         </tr>
         <tr>
