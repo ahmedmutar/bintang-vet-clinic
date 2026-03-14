@@ -52,9 +52,9 @@
 			<!-- Logo -->
 			<a href="{{ url('/') }}" class="logo">
 				<!-- mini logo for sidebar mini 50x50 pixels -->
-				<span class="logo-mini"><b>B</b>VC</span>
+				<span class="logo-mini"><b>C</b>VC</span>
 				<!-- logo for regular state and mobile devices -->
-				<span class="logo-lg"><b>BINTANG</b> <b>VET</b> CLINIC</span>
+				<span class="logo-lg"><b>COSMO</b> <b>VET</b> CLINIC</span>
 			</a>
 
 			<!-- Header Navbar: style can be found in header.less -->
