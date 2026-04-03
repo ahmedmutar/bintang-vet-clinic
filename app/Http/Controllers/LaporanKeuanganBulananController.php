@@ -34,7 +34,17 @@ class LaporanKeuanganBulananController extends Controller
       return $query;
     };
 
-    // Same but uses alias 'b' (expenses table)
+    // Used on outer subquery where branches.id is out of scope (aliased as branchId)
+    $branchFilterAlias = function ($query) use ($request) {
+      if ($request->branch_id && $request->user()->role === 'admin') {
+        $query->where('branchId', '=', $request->branch_id);
+      } else {
+        $query->where('branchId', '=', $request->user()->branch_id);
+      }
+      return $query;
+    };
+
+    // Same but uses alias .b. (expenses table)
     $branchFilterB = function ($query) use ($request) {
       if ($request->branch_id && $request->user()->role === 'admin') {
         $query->where('b.id', '=', $request->branch_id);
@@ -157,7 +167,7 @@ class LaporanKeuanganBulananController extends Controller
       ])
       ->groupBy('check_up_result_id');
 
-    $branchFilter($data);
+    $branchFilterAlias($data);
 
     if ($request->orderby) {
       $data->orderBy($request->column, $request->orderby);
