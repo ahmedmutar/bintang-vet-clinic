@@ -65,6 +65,48 @@
   </div>
 </div>
 
+<div class="row">
+  <div class="col-md-12">
+    <div class="box box-info">
+      <div class="box-header with-border">
+        <h3 class="box-title"><i class="fa fa-lock"></i> Ganti Password</h3>
+      </div>
+      <div class="box-body">
+        <div class="form-group">
+          <label for="oldPassword">Password Lama</label>
+          <div class="p-relative">
+            <input type="password" class="form-control p-right-42px" id="oldPassword" placeholder="Masukkan password lama">
+            <span id="toggleOldPassword" class="glyphicon icon-password glyphicon-eye-open"></span>
+          </div>
+          <div id="oldPasswordErr" class="validate-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="newPassword">Password Baru</label>
+          <div class="p-relative">
+            <input type="password" class="form-control p-right-42px" id="newPassword" placeholder="Min. 8 karakter, huruf besar, kecil, angka, simbol">
+            <span id="toggleNewPassword" class="glyphicon icon-password glyphicon-eye-open"></span>
+          </div>
+          <div id="newPasswordErr" class="validate-error"></div>
+        </div>
+        <div class="form-group">
+          <label for="confirmPassword">Konfirmasi Password Baru</label>
+          <div class="p-relative">
+            <input type="password" class="form-control p-right-42px" id="confirmPassword" placeholder="Ulangi password baru">
+            <span id="toggleConfirmPassword" class="glyphicon icon-password glyphicon-eye-open"></span>
+          </div>
+          <div id="confirmPasswordErr" class="validate-error"></div>
+        </div>
+        <div class="form-group">
+          <div id="beErrPassword" class="validate-error"></div>
+        </div>
+      </div>
+      <div class="box-footer">
+        <button class="btn btn-info" id="btnGantiPassword">Ganti Password</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal fade" id="modal-profile-upload-foto">
 	<div class="modal-dialog">
 		<div class="modal-content">

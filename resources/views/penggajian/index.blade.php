@@ -14,7 +14,7 @@
                 <i class="fa fa-calendar"></i>
             </div>
             <input type="text" class="form-control" id="datepickerindex" placeholder="mm-yyyy" autocomplete="off">
-        </div>  
+        </div>
 
         <div class="input-search-section m-r-10px">
           <input type="text" class="form-control" placeholder="cari..">
@@ -35,6 +35,9 @@
             <th class="onOrdering columnCabang" data='branch_name' orderby="none">Cabang <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='basic_sallary' orderby="none">Pokok <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='accomodation' orderby="none">Akomodasi <span class="fa fa-sort"></span></th>
+            <th class="onOrdering" data='eat' orderby="none">Makan <span class="fa fa-sort"></span></th>
+            <th class="onOrdering" data='count_eat' orderby="none">Jml Hadir <span class="fa fa-sort"></span></th>
+            <th class="onOrdering" data='fine' orderby="none">Denda <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='total_turnover' orderby="none">Omzet <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='total_inpatient' orderby="none">Inap <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='total_surgery' orderby="none">Operasi <span class="fa fa-sort"></span></th>

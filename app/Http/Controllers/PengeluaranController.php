@@ -24,7 +24,7 @@ class PengeluaranController extends Controller
         //->join('branches as b', 'user_spender.branch_id', '=', 'b.id')
             ->select(
                 'e.id as id',
-                DB::raw("DATE_FORMAT(e.date_spend, '%d/%m/%Y') as date_spend"),
+                DB::raw("DATE_FORMAT(e.date_spend, '%d %b %Y %H:%i:%s') as date_spend"),
                 'user_spender.fullname',
                 'e.user_id_spender',
                 'e.item_name',
@@ -32,7 +32,7 @@ class PengeluaranController extends Controller
                 DB::raw("TRIM(e.amount)+0 as amount"),
                 DB::raw("TRIM(e.amount_overall)+0 as amount_overall"),
                 'users.fullname as created_by',
-                DB::raw("DATE_FORMAT(e.created_at, '%d %b %Y') as created_at"));
+                DB::raw("DATE_FORMAT(e.created_at, '%d %b %Y %H:%i:%s') as created_at"));
 
         if ($request->keyword) {
             $res = $this->Search($request);

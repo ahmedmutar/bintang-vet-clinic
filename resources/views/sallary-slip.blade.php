@@ -1,102 +1,156 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="id">
 <head>
-    <style>
-        @page {
-            margin: 0px;
-            font-size: 20px;
-            /* font-family: Calibri; */
-        }
+  <meta charset="UTF-8">
+  <title>Slip Gaji - {{ $data_user[0]->fullname }}</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            margin: 0px;
-            font-size: 20px;
-            font-family: Arial, Helvetica, sans-serif;
-        }
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 12px;
+      color: #222;
+      background: #fff;
+    }
 
-        th.colNumber {
-            width: 10%;
-            border-bottom: 1px solid black;
-            border-collapse: collapse;
-        }
+    /* ── Header banner ── */
+    .header-wrap {
+      background-color: #1a5276;
+      padding: 16px 30px 12px;
+      color: #fff;
+    }
+    .header-clinic { font-size: 22px; font-weight: bold; letter-spacing: 1px; }
+    .header-sub    { font-size: 11px; margin-top: 2px; color: #aed6f1; }
+    .header-divider { border: none; border-top: 3px solid #2ecc71; margin: 0; }
 
-        th.colRemark {
-            text-align: left;
-            border-bottom: 1px solid black;
-            border-collapse: collapse;
-            width: 90%
-        }
+    .header-meta {
+      background: #f4f6f7;
+      padding: 8px 30px;
+      border-bottom: 1px solid #d5d8dc;
+    }
+    .header-meta table { width: 100%; border-collapse: collapse; }
+    .header-meta td   { padding: 3px 0; font-size: 12px; vertical-align: top; }
+    .header-meta .lbl { color: #555; width: 110px; }
+    .header-meta .val { font-weight: bold; color: #1a5276; }
+    .header-meta .doc-title {
+      text-align: right;
+      font-size: 16px;
+      font-weight: bold;
+      color: #1a5276;
+    }
 
-        th.colAmount {
-            text-align: left;
-            border-bottom: 1px solid black;
-            border-collapse: collapse;
-            width: 50%
-        }
+    /* ── Content ── */
+    .content { padding: 18px 30px; }
 
-        table,
-        td,
-        th {
-            border: 0px solid black;
-        }
+    /* ── Employee info box ── */
+    .emp-box {
+      border: 1px solid #d5d8dc;
+      margin-bottom: 16px;
+    }
+    .emp-box-title {
+      background: #2c6e49;
+      color: #fff;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 4px 10px;
+    }
+    .emp-grid { width: 100%; border-collapse: collapse; }
+    .emp-grid td {
+      padding: 5px 10px;
+      font-size: 12px;
+      vertical-align: top;
+      border-bottom: 1px solid #eaecee;
+    }
+    .emp-grid tr:last-child td { border-bottom: none; }
+    .emp-grid .lbl { width: 30%; color: #555; background: #fafafa; border-right: 1px solid #eaecee; }
+    .emp-grid .val { width: 20%; color: #222; }
 
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            padding: 12px;
-            margin: 0px;
-        }
+    /* ── Salary table ── */
+    .section-title {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #fff;
+      background: #2c6e49;
+      padding: 4px 10px;
+      margin-bottom: 0;
+    }
+    .salary-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid #d5d8dc;
+      border-top: none;
+      margin-bottom: 16px;
+    }
+    .salary-table thead tr {
+      background: #eaf4fb;
+    }
+    .salary-table thead th {
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: bold;
+      color: #1a5276;
+      text-align: left;
+      border-bottom: 2px solid #aed6f1;
+    }
+    .salary-table thead th.center { text-align: center; }
+    .salary-table tbody tr { border-bottom: 1px solid #eaecee; }
+    .salary-table tbody tr:last-child { border-bottom: none; }
+    .salary-table tbody td {
+      padding: 6px 10px;
+      font-size: 12px;
+      vertical-align: middle;
+    }
+    .salary-table tbody td.no { text-align: center; width: 8%; color: #888; }
+    .salary-table tfoot td {
+      padding: 7px 10px;
+      font-size: 12px;
+      border-top: 2px solid #d5d8dc;
+    }
+    .terbilang {
+      background: #f4f6f7;
+      border: 1px solid #d5d8dc;
+      border-top: none;
+      padding: 6px 10px;
+      font-size: 11px;
+      color: #555;
+      margin-bottom: 16px;
+    }
+    .total-val { font-weight: bold; font-size: 13px; color: #1a5276; }
 
-        th {
-            height: 10px;
-        }
+    /* ── Signature ── */
+    .sign-table { width: 100%; border-collapse: collapse; margin-top: 30px; }
+    .sign-table td {
+      text-align: center;
+      width: 50%;
+      font-size: 12px;
+      color: #444;
+      padding: 0 20px;
+      vertical-align: top;
+    }
+    .sign-role { font-weight: bold; color: #1a5276; margin-bottom: 4px; }
+    .sign-line {
+      border-top: 1px solid #888;
+      margin-top: 50px;
+      padding-top: 4px;
+      font-size: 11px;
+      color: #555;
+    }
 
-        label.title {
-            font-weight: bold;
-            font-size: 25px
-        }
-
-        label.titlePetName {
-            font-weight: bold;
-            font-size: 20px
-        }
-
-        label.address {
-            font-size: 15px
-        }
-
-        td.date {
-            text-align: right;
-            font-size: 15px;
-        }
-
-        td.codeEmployee {
-            text-align: right;
-            font-size: 15px;
-            border-bottom: 1px solid black;
-            border-collapse: collapse;
-        }
-
-        .img-style {
-            border-radius: 50%;
-        }
-
-        .center-content {
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        td.underTitle {
-            border-bottom: 1px solid black;
-            border-collapse: collapse;
-        }
-
-    </style>
-    {{-- <title>{{ $registration_number }}</title> --}}
+    /* ── Footer ── */
+    .page-footer {
+      margin-top: 24px;
+      border-top: 2px solid #1a5276;
+      padding-top: 6px;
+      text-align: center;
+      font-size: 10px;
+      color: #888;
+    }
+  </style>
 </head>
-
-
 <body>
     <table style="width: 100%">
         <tr>
@@ -105,315 +159,174 @@
             </td>
             <td>
 
-            </td>
-            <td>
+  {{-- ── Header ── --}}
+  <div class="header-wrap">
+    <div class="header-clinic">{{ $data_user[0]->branch_name }}</div>
+    <div class="header-sub">{{ $data_user[0]->branch_address }}</div>
+  </div>
+  <hr class="header-divider">
 
-            </td>
-        </tr>
-        <tr>
-            <td style="width: 33%">
-                <label class="address">{{ $data_user[0]->branch_address }}</label>
-            </td>
-            <td style="text-align: center">
-                <label class="title">SLIP GAJI {{ $month_period }}</label>
-            </td>
-            <td class="date">
-                <label>Tanggal: {{ $data_user[0]->date_payed }}</label>
-            </td>
-
-        </tr>
-
-        <tr>
-            <td class="underTitle">
-
-            </td>
-            <td class="underTitle">
-
-            </td>
-            <td class="codeEmployee">
-                <label>Kode Karyawan:{{ $data_user[0]->staffing_number }}</label>
-            </td>
-
-        </tr>
+  <div class="header-meta">
+    <table>
+      <tr>
+        <td>
+          <table>
+            <tr>
+              <td class="lbl">Periode</td>
+              <td class="val">: {{ $month_period }}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Tanggal Bayar</td>
+              <td class="val">: {{ $data_user[0]->date_payed }}</td>
+            </tr>
+            <tr>
+              <td class="lbl">Kode Karyawan</td>
+              <td class="val">: {{ $data_user[0]->staffing_number }}</td>
+            </tr>
+          </table>
+        </td>
+        <td class="doc-title">SLIP GAJI<br>{{ $month_period }}</td>
+      </tr>
     </table>
+  </div>
 
-    <table style="width: 100%">
+  <div class="content">
 
+    {{-- ── Data Karyawan ── --}}
+    <div class="emp-box">
+      <div class="emp-box-title">Data Karyawan</div>
+      <table class="emp-grid">
         <tr>
-            <td style="width:50%">
-                <label>Nama: {{ $data_user[0]->fullname }}</label>
-            </td>
-            <td>
-                <label>Alamat: {{ $data_user[0]->address }}</label>
-            </td>
-            <td>
-                <label>&nbsp;</label>
-            </td>
-
+          <td class="lbl">Nama</td>
+          <td class="val">{{ $data_user[0]->fullname }}</td>
+          <td class="lbl">Alamat</td>
+          <td class="val">{{ $data_user[0]->address }}</td>
         </tr>
-
         <tr>
-            <td>
-                <label>Jabatan: {{ ucfirst($data_user[0]->role) }}</label>
-            </td>
-            <td>
-                <label>Telepon: {{ $data_user[0]->phone_number }}</label>
-            </td>
-            <td>
-                <label></label>
-            </td>
-
+          <td class="lbl">Jabatan</td>
+          <td class="val">{{ ucfirst($data_user[0]->role) }}</td>
+          <td class="lbl">No. Telepon</td>
+          <td class="val">{{ $data_user[0]->phone_number }}</td>
         </tr>
-
         <tr>
-            <td style="width:50%; border-bottom: 1px solid black; border-collapse: collapse;">
-                <label>&nbsp;</label>
-            </td>
-            <td style="border-bottom: 1px solid black; border-collapse: collapse;">
-                <label>Masa Kerja: {{ $month_period }}</label>
-            </td>
-            <td style="border-bottom: 1px solid black; border-collapse: collapse;">
-                <label>&nbsp;</label>
-            </td>
+          <td class="lbl">Masa Kerja</td>
+          <td class="val" colspan="3">{{ $month_period }}</td>
         </tr>
+      </table>
+    </div>
 
-    </table>
-
-    <table style="width:100%; border: 1px solid black;border-collapse: collapse;">
+    {{-- ── Rincian Gaji ── --}}
+    <div class="section-title">Rincian Gaji</div>
+    <table class="salary-table">
+      <thead>
         <tr>
-            <th class="colNumber">
-                <label>No</label>
-                </td>
-            <th class="colRemark">
-                <label>Keterangan</label>
-            </th>
-            <th class="colAmount">
-                <label>Jumlah</label>
-            </th>
+          <th class="center" style="width:8%">No</th>
+          <th>Keterangan</th>
+          <th>Jumlah</th>
         </tr>
-
-        @php
-            $num = 1;
-        @endphp
+      </thead>
+      <tbody>
+        @php $num = 1; @endphp
 
         @if ($data_user[0]->basic_sallary > 0)
-            <tr>
-                <td style="text-align: center">
-                    <label>{{ $num }}</label>
-                </td>
-                <td>
-                    <label>Gaji Pokok</label>
-                </td>
-                <td>
-                    <label>Rp {{ number_format($data_user[0]->basic_sallary) }}</label>
-                </td>
-            </tr>
-            @php
-                $num++;
-            @endphp
-            <tr>
-                <td>
-                    &nbsp;
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-            </tr>
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Gaji Pokok</td>
+          <td>Rp {{ number_format($data_user[0]->basic_sallary) }}</td>
+        </tr>
         @endif
 
         @if ($data_user[0]->accomodation > 0)
-            <tr>
-                <td style="text-align: center">
-                    <label>{{ $num }}</label>
-                </td>
-                <td>
-                    <label>Akomodasi</label>
-                </td>
-                <td>
-                    <label>Rp {{ number_format($data_user[0]->accomodation) }}</label>
-                </td>
-            </tr>
-            @php
-                $num++;
-            @endphp
-            <tr>
-                <td>
-                    &nbsp;
-                </td>
-                <td>
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Akomodasi</td>
+          <td>Rp {{ number_format($data_user[0]->accomodation) }}</td>
+        </tr>
+        @endif
 
-                </td>
-                <td>
-
-                </td>
-            </tr>
+        @if ($data_user[0]->eat > 0)
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Uang Makan</td>
+          <td>Rp {{ number_format($data_user[0]->eat) }}</td>
+        </tr>
         @endif
 
         @if ($data_user[0]->total_turnover > 0)
-            <tr>
-                <td style="text-align: center">
-                    <label>{{ $num }}</label>
-                </td>
-                <td>
-                    <label>Bonus Omzet</label>
-                </td>
-                <td>
-                    <label>Rp {{ number_format($data_user[0]->total_turnover) }}</label>
-                </td>
-            </tr>
-            @php
-                $num++;
-            @endphp
-            <tr>
-                <td>
-                    &nbsp;
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-            </tr>
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Bonus Omzet</td>
+          <td>Rp {{ number_format($data_user[0]->total_turnover) }}</td>
+        </tr>
         @endif
 
         @if ($data_user[0]->total_inpatient > 0)
-            <tr>
-                <td style="text-align: center">
-                    <label>{{ $num }}</label>
-                </td>
-                <td>
-                    <label>Bonus Rawat Inap</label>
-                </td>
-                <td>
-                    <label>Rp {{ number_format($data_user[0]->total_inpatient) }}</label>
-                </td>
-            </tr>
-            @php
-                $num++;
-            @endphp
-            <tr>
-                <td>
-                    &nbsp;
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-            </tr>
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Bonus Rawat Inap</td>
+          <td>Rp {{ number_format($data_user[0]->total_inpatient) }}</td>
+        </tr>
         @endif
 
         @if ($data_user[0]->total_surgery > 0)
-            <tr>
-                <td style="text-align: center">
-                    <label>{{ $num }}</label>
-                </td>
-                <td>
-                    <label>Bonus Operasi</label>
-                </td>
-                <td>
-                    <label>Rp {{ number_format($data_user[0]->total_surgery) }}</label>
-                </td>
-            </tr>
-            @php
-                $num++;
-            @endphp
-            <tr>
-                <td>
-                    &nbsp;
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-            </tr>
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Bonus Operasi</td>
+          <td>Rp {{ number_format($data_user[0]->total_surgery) }}</td>
+        </tr>
         @endif
 
         @if ($data_user[0]->total_grooming > 0)
-            <tr>
-                <td style="text-align: center">
-                    <label>{{ $num }}</label>
-                </td>
-                <td>
-                    <label>Bonus Grooming</label>
-                </td>
-                <td>
-                    <label>Rp {{ number_format($data_user[0]->total_grooming) }}</label>
-                </td>
-            </tr>
-
-            <tr>
-                <td>
-                    &nbsp;
-                </td>
-                <td>
-
-                </td>
-                <td>
-
-                </td>
-            </tr>
+        <tr>
+          <td class="no">{{ $num++ }}</td>
+          <td>Bonus Grooming</td>
+          <td>Rp {{ number_format($data_user[0]->total_grooming) }}</td>
+        </tr>
         @endif
 
-
+        @if ($data_user[0]->fine > 0)
         <tr>
-            <td style="border-top: 1px solid black; border-collapse: collapse;">
-                <label></label>
-            </td>
-            <td style="text-align: right; border-top: 1px solid black; border-collapse: collapse;font-size: 20px">
-                <label> <b>Total Diterima:</b>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</label>
-            </td>
-            <td style="border-top: 1px solid black; border-collapse: collapse;font-size: 20px">
-                <label> <b> Rp {{ number_format($data_user[0]->total_overall) }}</b></label>
-            </td>
+          <td class="no">{{ $num++ }}</td>
+          <td>Denda</td>
+          <td>Rp {{ number_format($data_user[0]->fine) }}</td>
         </tr>
-
+        @endif
+      </tbody>
+      <tfoot>
         <tr>
-            <td colspan="3" style="font-size: 20px;border-top: 1px solid black; border-collapse: collapse;">
-                <label>Terbilang: {{ $terbilang }} rupiah</label>
-            </td>
+          <td colspan="2" style="text-align:right; font-weight:bold; color:#333;">
+            Total Diterima
+          </td>
+          <td class="total-val">
+            Rp {{ number_format($data_user[0]->total_overall) }}
+          </td>
         </tr>
+      </tfoot>
     </table>
 
-    <table style="width: 100%">
-        <tr>
-            <td style="width: 9%">
-                <label>&nbsp;</label>
-            </td>
-            <td class="colRemark" style="text-align: center;width: 10%;">
-                <label>Penerima,</label>
-            </td>
-            <td class="colAmount" style="text-align: right">
-                <label>Penanggung Jawab</label>
-                {{-- {{ $data_user[0]->date_payed_diff_format }} --}}
-            </td>
-            <td style="width: 5%">
-                <label>&nbsp;</label>
-            </td>
-        </tr>
-    </table>
-    <br>
-    <table>
-        <tr>
+    <div class="terbilang">
+      <strong>Terbilang:</strong> {{ $terbilang }} rupiah
+    </div>
 
-            <td style="text-align: center; width: 30%">
-                <label>{{ $data_user[0]->fullname }}</label>
-            </td>
-            <td class="colAmount" style="text-align: right">
-                <label>&nbsp;</label>
-            </td>
-            <td style="text-align: center; width: 35%">
-                <label>Pribadi M.Y</label>
-            </td>
-        </tr>
+    {{-- ── Tanda Tangan ── --}}
+    <table class="sign-table">
+      <tr>
+        <td>
+          <div class="sign-role">Penerima</div>
+          <div class="sign-line">{{ $data_user[0]->fullname }}</div>
+        </td>
+        <td>
+          <div class="sign-role">Penanggung Jawab</div>
+          <div class="sign-line">Pribadi M.Y</div>
+        </td>
+      </tr>
     </table>
+
+    <div class="page-footer">
+      Dokumen ini diterbitkan secara otomatis oleh sistem {{ $data_user[0]->branch_name }} &bull; {{ $data_user[0]->date_payed }}
+    </div>
+
+  </div>
+
 </body>
-
 </html>

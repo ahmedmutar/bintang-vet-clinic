@@ -13,7 +13,7 @@ class CheckUpResult extends Model
     protected $guarded = ['id'];
 
     protected $fillable = ['patient_registration_id', 'anamnesa', 'sign', 'diagnosa',
-        'status_outpatient_inpatient', 'status_finish', 'status_paid_off', 'user_id'];
+        'status_outpatient_inpatient', 'status_finish', 'alasan_tidak_pengabaran', 'status_pengabaran', 'status_paid_off', 'user_id'];
 
     protected $casts = [
         'created_at' => 'datetime:d M Y',

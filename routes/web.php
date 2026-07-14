@@ -25,6 +25,10 @@ Route::get('/masuk', function () {
 	return view('auth.login');
 });
 
+Route::get('/lupa-password', function () {
+	return view('auth.lupa-password');
+});
+
 Route::get('/user', function () {
 	return view('user.index');
 });
@@ -182,11 +186,14 @@ Route::get('/pengeluaran', function () {
 	return view('pengeluaran.index');
 });
 
-Route::get('pembayaran/print/{check_up_result_id}/{service_payment}/{item_payment}', 'PembayaranController@print_pdf');
-
-Route::get('penggajian/generate/{id}', 'PenggajianController@generate');
-
-Route::get('pembayaranpetshop/printreceipt/{master_payment_id}', 'PembayaranPetShopController@print_receipt');
+Route::middleware(['jwt.print'])->group(function () {
+    Route::get('pendaftaran/cetak/{id}', 'RegistrasiController@cetakRegistrasi');
+    Route::get('hasil-pemeriksaan/cetak/{id}', 'HasilPemeriksaanController@cetakHasilPemeriksaan');
+    Route::get('pembayaran/print/{check_up_result_id}/{service_payment}/{item_payment}', 'PembayaranController@print_pdf');
+    Route::get('penggajian/generate/{id}', 'PenggajianController@generate');
+    Route::get('pembayaranpetshop/printreceipt/{master_payment_id}', 'PembayaranPetShopController@print_receipt');
+    Route::get('pembayaranpetshop/printinvoice/{master_payment_id}', 'PembayaranPetShopController@print_invoice');
+});
 
 Route::post('/print', function(Request $request) {
   if ($request->ajax()) {
@@ -249,4 +256,24 @@ Route::post('/print', function(Request $request) {
 
 Route::get('/unauthorized', function () {
 	return view('errors.unauthorized');
+});
+
+Route::get('/shift', function () {
+	return view('absensi.shift');
+});
+
+Route::get('/absensi', function () {
+	return view('absensi.index');
+});
+
+Route::get('/absensi-radius-exception', function () {
+	return view('absensi.radius-exception');
+});
+
+Route::get('/pengabaran/nomor-wa', function () {
+	return view('pengabaran.nomor-wa');
+});
+
+Route::get('/pengabaran/template', function () {
+	return view('pengabaran.template');
 });

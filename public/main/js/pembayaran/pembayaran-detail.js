@@ -29,7 +29,7 @@ $(document).ready(function() {
 
       $('#nomorPasienTxt').text(data.registration.patient_number); $('#jenisHewanTxt').text(data.registration.pet_category);
       $('#namaHewanTxt').text(data.registration.pet_name); $('#jenisKelaminTxt').text(data.registration.pet_gender);
-      $('#usiaHewanTahunTxt').text(`${data.registration.pet_year_age} Tahun`); $('#usiaHewanBulanTxt').text(`${data.registration.pet_month_age} Bulan`);
+      $('#usiaHewanTahunTxt').text(`${data.registration.pet_year_age} Tahun `); $('#usiaHewanBulanTxt').text(`${data.registration.pet_month_age} Bulan `); $('#usiaHewanHariTxt').text(`${data.registration.pet_day_age} Hari`);
       $('#namaPemilikTxt').text(data.registration.owner_name); $('#alamatPemilikTxt').text(data.registration.owner_address);
       $('#nomorHpPemilikTxt').text(data.registration.owner_phone_number); $('#nomorRegistrasiTxt').text(data.registration.registration_number);
       $('#keluhanTxt').text(data.registration.complaint); $('#namaPendaftarTxt').text(data.registration.registrant);

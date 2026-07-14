@@ -1,4 +1,11 @@
 // Dropzone.autoDiscover = false;
+function waLink(phone) {
+  const raw = (phone || '').replace(/\D/g, '');
+  const num  = raw.startsWith('0') ? '62' + raw.slice(1) : raw;
+  return num ? `<a href="https://wa.me/${num}" target="_blank" rel="noopener" style="color:#25D366;">
+    <i class="fa fa-whatsapp" style="font-size:16px; margin-right:4px;"></i>${phone}</a>` : '-';
+}
+
 let arrayKelompokObat = [];
 let arrayKelompokObatDelete = [];
 let formState = '';
@@ -8,6 +15,7 @@ let isValidSign = false;
 let isValidDiagnosa = false;
 let isValidRadioRawatInap = false;
 let isValidRadioStatusPemeriksa = false;
+let isValidAlasanTidak = true;
 let isValidFotoKondisiPasien = true;
 let customErr1 = false;
 let isBeErr = false;
@@ -55,7 +63,7 @@ $(document).ready(function() {
   });
 
   $('#btnSubmitHasilPemeriksaan').click(function() {
-    const getCheckedStatusPemeriksa = $("input[name='radioStatusPemeriksa']:checked").val();
+    const getCheckedStatusPemeriksa = $("input[name='radioStatusPengabaran']:checked").val();
 
     if (parseInt(getCheckedStatusPemeriksa)) {
       $('#modal-confirmation .modal-title').text('Peringatan');
@@ -77,9 +85,9 @@ $(document).ready(function() {
 		if (getObj) {
 			$('#nomorPasienTxt').text(getObj.id_number_patient); $('#jenisHewanTxt').text(getObj.pet_category);
 			$('#namaHewanTxt').text(getObj.pet_name); $('#jenisKelaminTxt').text(getObj.pet_gender);
-			$('#usiaHewanTahunTxt').text(`${getObj.pet_year_age} Tahun`); $('#usiaHewanBulanTxt').text(`${getObj.pet_month_age} Bulan`);
+			$('#usiaHewanTahunTxt').text(`${getObj.pet_year_age ?? 0} Tahun`); $('#usiaHewanBulanTxt').text(`${getObj.pet_month_age ?? 0} Bulan`); $('#usiaHewanHariTxt').text(`${getObj.pet_day_age ?? 0} Hari`);
 			$('#namaPemilikTxt').text(getObj.owner_name); $('#alamatPemilikTxt').text(getObj.owner_address);
-      $('#nomorHpPemilikTxt').text(getObj.owner_phone_number); $('#nomorRegistrasiTxt').text(getObj.registration_number);
+      $('#nomorHpPemilikTxt').html(waLink(getObj.owner_phone_number)); $('#nomorRegistrasiTxt').text(getObj.registration_number);
       $('#keluhanTxt').text(getObj.complaint); $('#namaPendaftarTxt').text(getObj.registrant);
 
 		} else { refreshText(); }
@@ -106,7 +114,19 @@ $(document).ready(function() {
     validationForm();
   });
 
-  $('input:radio[name="radioStatusPemeriksa"]').change(function (e) { validationForm(); });
+  $('input:radio[name="radioStatusPengabaran"]').change(function (e) {
+    if ($(this).val() == '0') {
+      $('#alasanTidakPengabaranDiv').show();
+    } else {
+      $('#alasanTidakPengabaranDiv').hide();
+      $('#alasanTidakPengabaran').val('');
+    }
+    validationForm();
+  });
+
+  $('#alasanTidakPengabaran').on('input', function() {
+    validationForm();
+  });
 
   $('#testUpload').click(function() {
     // dropzone.processQueue();
@@ -160,7 +180,8 @@ $(document).ready(function() {
     fd.append('anamnesa', $('#anamnesa').val());
     fd.append('sign', $('#sign').val());
     fd.append('diagnosa', $('#diagnosa').val());
-    fd.append('status_finish', $("input[name='radioStatusPemeriksa']:checked").val());
+    fd.append('status_pengabaran', $("input[name='radioStatusPengabaran']:checked").val());
+    fd.append('alasan_tidak_pengabaran', $("input[name='radioStatusPengabaran']:checked").val() == '0' ? $('#alasanTidakPengabaran').val() : '');
     fd.append('status_outpatient_inpatient', $("input[name='radioRawatInap']:checked").val());
     fd.append('inpatient', $('#descriptionCondPasien').val());
 
@@ -214,7 +235,7 @@ $(document).ready(function() {
         }, 1000);
       }, complete: function() { $('#loading-screen').hide(); }
       , error: function(err) {
-        if (err.status === 422) {
+        if (err.status === 422 || err.status === 403) {
           let errText = ''; $('#beErr').empty(); $('#btnSubmitHasilPemeriksaan').attr('disabled', true);
           $.each(err.responseJSON.errors, function(idx, v) {
             errText += v + ((idx !== err.responseJSON.errors.length - 1) ? '<br/>' : '');
@@ -281,7 +302,8 @@ $(document).ready(function() {
       anamnesa: $('#anamnesa').val(),
       sign: $('#sign').val(),
       diagnosa: $('#diagnosa').val(),
-      status_finish: parseInt($("input[name='radioStatusPemeriksa']:checked").val()),
+      status_pengabaran: parseInt($("input[name='radioStatusPengabaran']:checked").val()),
+      alasan_tidak_pengabaran: $("input[name='radioStatusPengabaran']:checked").val() == '0' ? $('#alasanTidakPengabaran').val() : '',
       status_outpatient_inpatient: parseInt($("input[name='radioRawatInap']:checked").val()),
       inpatient: $('#descriptionCondPasien').val(),
       service: finalSelectedJasa,
@@ -347,7 +369,7 @@ $(document).ready(function() {
 
       }, complete: function() { $('#loading-screen').hide(); }
       , error: function(err) {
-        if (err.status === 422) {
+        if (err.status === 422 || err.status === 403) {
           let errText = ''; $('#beErr').empty(); $('#btnSubmitHasilPemeriksaan').attr('disabled', true);
           $.each(err.responseJSON.errors, function(idx, v) {
             errText += v + ((idx !== err.responseJSON.errors.length - 1) ? '<br/>' : '');
@@ -474,9 +496,9 @@ $(document).ready(function() {
         $('#nomorRegistrasiTxt').text(getData.registration.registration_number); $('#nomorPasienTxt').text(getData.registration.patient_number);
         $('#jenisHewanTxt').text(getData.registration.pet_category); $('#namaHewanTxt').text(getData.registration.pet_name);
         $('#jenisKelaminTxt').text(getData.registration.pet_gender);
-        $('#usiaHewanTahunTxt').text(`${getData.registration.pet_year_age} Tahun`); $('#usiaHewanBulanTxt').text(`${getData.registration.pet_month_age} Bulan`);
+        $('#usiaHewanTahunTxt').text(`${getData.registration.pet_year_age} Tahun`); $('#usiaHewanBulanTxt').text(`${getData.registration.pet_month_age} Bulan`); $('#usiaHewanHariTxt').text(`${getData.registration.pet_day_age} Hari`);
         $('#namaPemilikTxt').text(getData.registration.owner_name); $('#alamatPemilikTxt').text(getData.registration.owner_address);
-        $('#nomorHpPemilikTxt').text(getData.registration.owner_phone_number);
+        $('#nomorHpPemilikTxt').html(waLink(getData.registration.owner_phone_number));
         $('#keluhanTxt').text(getData.registration.complaint); $('#namaPendaftarTxt').text(getData.registration.registrant);
 
         $('#anamnesa').val(getData.anamnesa); $('#diagnosa').val(getData.diagnosa);
@@ -551,7 +573,14 @@ $(document).ready(function() {
           $('.table-deskripsi-kondisi-pasien').hide();
         }
 
-        $(`input[name=radioStatusPemeriksa][value=${getData.status_finish}]`).prop('checked', true);
+        $(`input[name=radioStatusPengabaran][value=${getData.status_pengabaran}]`).prop('checked', true);
+        if (getData.status_pengabaran == 0) {
+          $('#alasanTidakPengabaranDiv').show();
+          $('#alasanTidakPengabaran').val(getData.alasan_tidak_pengabaran || '');
+        } else {
+          $('#alasanTidakPengabaranDiv').hide();
+          $('#alasanTidakPengabaran').val('');
+        }
 
         let rowFotoKondPasien = '';
         $('#section-foto-kondisi-pasien .img-style').remove();
@@ -644,9 +673,9 @@ $(document).ready(function() {
   function refreshText() {
     $('#nomorPasienTxt').text('-'); $('#jenisHewanTxt').text('-');
 		$('#namaHewanTxt').text('-'); $('#jenisKelaminTxt').text('-');
-		$('#usiaHewanTahunTxt').text('- Tahun'); $('#usiaHewanBulanTxt').text('- Bulan');
+		$('#usiaHewanTahunTxt').text('- Tahun'); $('#usiaHewanBulanTxt').text('- Bulan'); $('#usiaHewanHariTxt').text('- Hari');
 		$('#namaPemilikTxt').text('-'); $('#alamatPemilikTxt').text('-');
-    $('#nomorHpPemilikTxt').text('-'); $('#nomorRegistrasiTxt').text('-');
+    $('#nomorHpPemilikTxt').html('-'); $('#nomorRegistrasiTxt').text('-');
     $('#keluhanTxt').text('-'); $('#namaPendaftarTxt').text('-');
   }
 
@@ -721,10 +750,20 @@ function validationForm() {
     $('#rawatInapErr1').text(''); isValidRadioRawatInap = true;
   }
 
-  if (!$("input[name='radioStatusPemeriksa']:checked").val()) {
-    $('#statusPemeriksaErr1').text('Status Pemeriksa harus di isi'); isValidRadioStatusPemeriksa = false;
+  if (!$("input[name='radioStatusPengabaran']:checked").val()) {
+    $('#statusPemeriksaErr1').text('Status pengabaran harus di isi'); isValidRadioStatusPemeriksa = false;
   } else {
     $('#statusPemeriksaErr1').text(''); isValidRadioStatusPemeriksa = true;
+  }
+
+  if ($("input[name='radioStatusPengabaran']:checked").val() == '0') {
+    if (!$('#alasanTidakPengabaran').val().trim()) {
+      $('#alasanTidakPengabaranErr').text('Alasan harus diisi'); isValidAlasanTidak = false;
+    } else {
+      $('#alasanTidakPengabaranErr').text(''); isValidAlasanTidak = true;
+    }
+  } else {
+    $('#alasanTidakPengabaranErr').text(''); isValidAlasanTidak = true;
   }
 
   let isValidKelompokObat = true;
@@ -743,7 +782,7 @@ function validationForm() {
   $('#beErr').empty(); isBeErr = false;
 
   if (!isValidSelectedPasien //|| !isValidAnamnesa || !isValidSign || !isValidDiagnosa
-    || !isValidRadioRawatInap || !isValidRadioStatusPemeriksa
+    || !isValidRadioRawatInap || !isValidRadioStatusPemeriksa || !isValidAlasanTidak
     || !isValidFotoKondisiPasien || isBeErr || customErr1) {
     $('#btnSubmitHasilPemeriksaan').attr('disabled', true);
   } else {

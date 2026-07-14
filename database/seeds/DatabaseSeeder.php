@@ -12,5 +12,7 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         // $this->call(UserSeeder::class);
+        // $this->call(ShiftSeeder::class);        // sudah dijalankan sekali
+        // $this->call(BranchCoordinateSeeder::class); // sudah dijalankan sekali
     }
 }

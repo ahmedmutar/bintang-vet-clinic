@@ -76,9 +76,18 @@ $(document).ready(function () {
         data: { id: $(this).val() },
         beforeSend: function () { $('#loading-screen').show(); },
         success: function (data) {
+          if (data.existing_payment_id) {
+            $("#msg-box .modal-body").text('Pembayaran untuk pasien ini sudah pernah dibuat. Mengarahkan ke halaman edit...');
+            $('#msg-box').modal('show');
+            setTimeout(() => {
+              window.location.href = $('.baseUrl').val() + '/pembayaran/edit/' + data.existing_payment_id;
+            }, 1500);
+            return;
+          }
+
           $('#nomorPasienTxt').text(data.registration.patient_number); $('#jenisHewanTxt').text(data.registration.pet_category);
           $('#namaHewanTxt').text(data.registration.pet_name); $('#jenisKelaminTxt').text(data.registration.pet_gender);
-          $('#usiaHewanTahunTxt').text(`${data.registration.pet_year_age} Tahun`); $('#usiaHewanBulanTxt').text(`${data.registration.pet_month_age} Bulan`);
+          $('#usiaHewanTahunTxt').text(`${data.registration.pet_year_age} Tahun `); $('#usiaHewanBulanTxt').text(`${data.registration.pet_month_age} Bulan `); $('#usiaHewanHariTxt').text(`${data.registration.pet_day_age} Hari`);
           $('#namaPemilikTxt').text(data.registration.owner_name); $('#alamatPemilikTxt').text(data.registration.owner_address);
           $('#nomorHpPemilikTxt').text(data.registration.owner_phone_number); $('#nomorRegistrasiTxt').text(data.registration.registration_number);
           $('#keluhanTxt').text(data.registration.complaint); $('#namaPendaftarTxt').text(data.registration.registrant);
@@ -174,10 +183,14 @@ $(document).ready(function () {
       beforeSend: function () { $('#loading-screen').show(); },
       success: function (resp) {
 
-        $("#msg-box .modal-body").text('Berhasil Menambah Data');
-        $('#msg-box').modal('show');
-
-        processPrint($('#selectedPasien').val(), JSON.stringify(finalSelectedJasa), JSON.stringify(finalSelectedBarang));
+        if (resp.is_paid_off) {
+          $("#msg-box .modal-body").text('Berhasil Menambah Data. Mengunduh invoice...');
+          $('#msg-box').modal('show');
+          processPrint($('#selectedPasien').val(), JSON.stringify(finalSelectedJasa), JSON.stringify(finalSelectedBarang));
+        } else {
+          $("#msg-box .modal-body").text('Berhasil Menambah Data. Invoice belum bisa diunduh karena pembayaran belum lunas.');
+          $('#msg-box').modal('show');
+        }
 
         setTimeout(() => {
           window.location.href = $('.baseUrl').val() + '/pembayaran';
@@ -185,11 +198,20 @@ $(document).ready(function () {
       }, complete: function () { $('#loading-screen').hide(); }
       , error: function (err) {
         if (err.status === 422) {
-          let errText = ''; $('#beErr').empty(); $('#btnSubmitPembayaran').attr('disabled', true);
-          $.each(err.responseJSON.errors, function (idx, v) {
-            errText += v + ((idx !== err.responseJSON.errors.length - 1) ? '<br/>' : '');
-          });
-          $('#beErr').append(errText); isBeErr = true;
+          const resp = err.responseJSON;
+          if (resp.redirect_payment_id) {
+            $("#msg-box .modal-body").text(resp.errors[0]);
+            $('#msg-box').modal('show');
+            setTimeout(() => {
+              window.location.href = $('.baseUrl').val() + '/pembayaran/edit/' + resp.redirect_payment_id;
+            }, 1500);
+          } else {
+            let errText = ''; $('#beErr').empty(); $('#btnSubmitPembayaran').attr('disabled', true);
+            $.each(resp.errors, function (idx, v) {
+              errText += v + ((idx !== resp.errors.length - 1) ? '<br/>' : '');
+            });
+            $('#beErr').append(errText); isBeErr = true;
+          }
         } else if (err.status == 401) {
           localStorage.removeItem('vet-clinic');
           location.href = $('.baseUrl').val() + '/masuk';
@@ -596,7 +618,7 @@ $(document).ready(function () {
   function refreshText() {
     $('#nomorPasienTxt').text('-'); $('#jenisHewanTxt').text('-');
     $('#namaHewanTxt').text('-'); $('#jenisKelaminTxt').text('-');
-    $('#usiaHewanTahunTxt').text('- Tahun'); $('#usiaHewanBulanTxt').text('- Bulan');
+    $('#usiaHewanTahunTxt').text('- Tahun '); $('#usiaHewanBulanTxt').text('- Bulan '); $('#usiaHewanHariTxt').text('- Hari');
     $('#namaPemilikTxt').text('-'); $('#alamatPemilikTxt').text('-');
     $('#nomorHpPemilikTxt').text('-'); $('#nomorRegistrasiTxt').text('-');
     $('#keluhanTxt').text('-'); $('#namaPendaftarTxt').text('-');

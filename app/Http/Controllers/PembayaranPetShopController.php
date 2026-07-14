@@ -7,9 +7,9 @@ use App\Models\ListofItemsPetShop;
 use App\Models\master_payment_petshop;
 use App\Models\payment_petshop;
 use App\Models\PriceItemPetShop;
+use Barryvdh\DomPDF\Facade\Pdf;
 use DB;
 use Illuminate\Http\Request;
-use PDF;
 use Validator;
 
 class PembayaranPetShopController extends Controller
@@ -37,7 +37,7 @@ class PembayaranPetShopController extends Controller
                 'branches.branch_name',
                 'users.id as user_id',
                 'users.fullname as created_by',
-                DB::raw("DATE_FORMAT(mp.created_at, '%d/%m/%Y') as created_at")
+                DB::raw("DATE_FORMAT(mp.created_at, '%d %b %Y %H:%i:%s') as created_at")
             )
             ->where('mp.isDeleted', '=', 0);
 
@@ -321,6 +321,60 @@ class PembayaranPetShopController extends Controller
             ->get();
 
         return response()->json($item, 200);
+    }
+
+    public function print_invoice(Request $request)
+    {
+        $master_payment_id = $request->master_payment_id;
+
+        $header = DB::table('master_payment_petshops as mp')
+            ->join('users', 'mp.user_id', '=', 'users.id')
+            ->join('branches', 'mp.branch_id', '=', 'branches.id')
+            ->select(
+                'branches.branch_name',
+                'branches.address',
+                'branches.payment_instruction',
+                'mp.payment_number',
+                'users.fullname as cashier_name',
+                DB::raw("DATE_FORMAT(mp.created_at, '%d %b %Y %H:%i:%s') as paid_time")
+            )
+            ->where('mp.id', '=', $master_payment_id)
+            ->first();
+
+        $data_petshop = DB::table('payment_petshops as py')
+            ->join('price_item_pet_shops as pip', 'py.price_item_pet_shop_id', '=', 'pip.id')
+            ->join('list_of_item_pet_shops as loi', 'pip.list_of_item_pet_shop_id', '=', 'loi.id')
+            ->select(
+                'loi.item_name',
+                'py.total_item as quantity',
+                DB::raw("TRIM(pip.selling_price)+0 as selling_price"),
+                DB::raw("TRIM(py.total_item * pip.selling_price)+0 as price_overall")
+            )
+            ->where('py.master_payment_petshop_id', '=', $master_payment_id)
+            ->get();
+
+        $total = $data_petshop->sum('price_overall');
+
+        $invoiceData = [
+            'customer_name'    => '-',
+            'customer_phone'   => '-',
+            'no_invoice'       => $header->payment_number,
+            'tanggal_invoice'  => $header->paid_time,
+            'total'            => $total,
+            'data_item'        => collect([]),
+            'data_service'     => collect([]),
+            'data_petshop'     => $data_petshop,
+        ];
+
+        $clinicData = [
+            'name'                => $header->branch_name,
+            'address'             => $header->address,
+            'payment_instruction' => $header->payment_instruction,
+        ];
+
+        $pdf = Pdf::loadView('invoice', compact('invoiceData', 'clinicData'));
+        $filename = $header->payment_number . '.pdf';
+        return $pdf->download($filename);
     }
 
     public function print_receipt(Request $request)

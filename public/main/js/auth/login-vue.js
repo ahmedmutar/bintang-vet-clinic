@@ -74,9 +74,15 @@ const loginApp = new Vue({
         .finally(() => {
           $('#loading-screen').hide();
           setTimeout(() => {
-            if (this.isSuccess) { 
+            if (this.isSuccess) {
               this.showAlert = false;
-              location.href = this.$refs.baseUrl.value + '/'; 
+              // Buka modal absensi sebelum redirect dashboard
+              if (typeof window.bukaModalAbsensi === 'function') {
+                const stored = JSON.parse(localStorage.getItem('vet-clinic'));
+                window.bukaModalAbsensi(stored.token, this.$refs.baseUrl.value);
+              } else {
+                location.href = this.$refs.baseUrl.value + '/';
+              }
             }
           }, 1000);
         });

@@ -46,6 +46,7 @@
   <!-- /.box-body -->
 
   @component('user.modal-user') @endcomponent
+  @component('user.modal-reset-password') @endcomponent
   @component('layout.modal-confirmation') @endcomponent
   @component('layout.message-box') @endcomponent
 </div>
