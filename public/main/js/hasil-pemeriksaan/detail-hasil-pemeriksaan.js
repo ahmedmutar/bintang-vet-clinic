@@ -30,9 +30,14 @@ $(document).ready(function() {
         $('#nomorRegistrasiDetailTxt').text(getData.registration.registration_number); $('#nomorPasienDetailTxt').text(getData.registration.patient_number);
         $('#jenisHewanDetailTxt').text(getData.registration.pet_category); $('#namaHewanDetailTxt').text(getData.registration.pet_name);
         $('#jenisKelaminDetailTxt').text(getData.registration.pet_gender);
-        $('#usiaHewanTahunDetailTxt').text(`${getData.registration.pet_year_age} Tahun`); $('#usiaHewanBulanDetailTxt').text(`${getData.registration.pet_month_age} Bulan`);
+        $('#usiaHewanTahunDetailTxt').text(`${getData.registration.pet_year_age} Tahun`); $('#usiaHewanBulanDetailTxt').text(`${getData.registration.pet_month_age} Bulan`); $('#usiaHewanHariDetailTxt').text(`${getData.registration.pet_day_age} Hari`);
         $('#namaPemilikDetailTxt').text(getData.registration.owner_name); $('#alamatPemilikDetailTxt').text(getData.registration.owner_address);
-        $('#nomorHpPemilikDetailTxt').text(getData.registration.owner_phone_number);
+        const rawPhone = (getData.registration.owner_phone_number || '').replace(/\D/g, '');
+        const waNumber = rawPhone.startsWith('0') ? '62' + rawPhone.slice(1) : rawPhone;
+        $('#nomorHpPemilikDetailTxt').html(
+          waNumber ? `<a href="https://wa.me/${waNumber}" target="_blank" rel="noopener" style="color:#25D366;">
+            <i class="fa fa-whatsapp" style="font-size:16px; margin-right:4px;"></i>${getData.registration.owner_phone_number}</a>` : '-'
+        );
         $('#keluhanDetailTxt').text(getData.registration.complaint); $('#namaPendaftarDetailTxt').text(getData.registration.registrant);
         $('#rawatInapDetailTxt').text(getData.status_outpatient_inpatient ? 'Ya' : 'Tidak');
         $('#statusPemeriksaanDetailTxt').text(getData.status_finish ? 'Selesai' : 'Belum');

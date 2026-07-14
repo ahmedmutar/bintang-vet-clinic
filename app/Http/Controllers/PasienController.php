@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Branch;
 use App\Models\Owner;
 use App\Models\Patient;
+use App\Models\PetCategory;
 use DB;
 use Illuminate\Http\Request;
 use Validator;
@@ -22,22 +23,25 @@ class PasienController extends Controller
       ->join('branches', 'patients.branch_id', '=', 'branches.id')
       ->join('users', 'patients.user_id', '=', 'users.id')
       ->join('owners', 'patients.owner_id', '=', 'owners.id')
+      ->leftJoin('pet_categories', 'patients.pet_category_id', '=', 'pet_categories.id')
       ->select(
         'patients.id',
         'patients.branch_id',
         'branches.branch_name',
         'patients.id_member',
-        'patients.pet_category',
+        'patients.pet_category_id',
+        'patients.other_pet_category',
+        DB::raw('CASE WHEN patients.pet_category_id = 6 AND patients.other_pet_category IS NOT NULL AND patients.other_pet_category != "" THEN patients.other_pet_category ELSE COALESCE(pet_categories.name, patients.pet_category) END as pet_category'),
         'patients.pet_name',
         'patients.pet_gender',
         'patients.pet_year_age',
         'patients.pet_month_age',
+        'patients.pet_day_age',
         DB::raw('(CASE WHEN patients.owner_name = "" THEN owners.owner_name ELSE patients.owner_name END) AS owner_name'),
         DB::raw('(CASE WHEN patients.owner_address = "" THEN owners.owner_address ELSE patients.owner_address END) AS owner_address'),
         DB::raw('(CASE WHEN patients.owner_phone_number = "" THEN owners.owner_phone_number ELSE patients.owner_phone_number END) AS owner_phone_number'),
-        'branches.branch_name',
         'users.fullname as created_by',
-        DB::raw("DATE_FORMAT(patients.created_at, '%d %b %Y') as created_at"),
+        DB::raw("DATE_FORMAT(patients.created_at, '%d %b %Y %H:%i:%s') as created_at"),
         'owners.id as owner_id',
         'owners.owner_name as owner_name_new',
         'owners.owner_address as owner_address_new',
@@ -367,14 +371,13 @@ class PasienController extends Controller
   public function create(Request $request)
   {
     $validator = Validator::make($request->all(), [
-      'kategori_hewan' => 'required|min:3|max:50',
-      'nama_hewan' => 'required|min:3|max:50',
+      'pet_category_id'    => 'required|integer|exists:pet_categories,id',
+      'other_pet_category' => 'required_if:pet_category_id,6|nullable|string|max:50',
+      'nama_hewan'         => 'required|min:3|max:50',
       'jenis_kelamin_hewan' => 'required|string|max:50',
-      'usia_tahun_hewan' => 'required|numeric|min:0',
-      'usia_bulan_hewan' => 'required|numeric|min:0|max:12',
-      // 'nama_pemilik' => 'required|string|max:50',
-      // 'alamat_pemilik' => 'required|string|max:100',
-      // 'nomor_ponsel_pengirim' => 'required|numeric|digits_between:10,13',
+      'usia_tahun_hewan'   => 'required|numeric|min:0',
+      'usia_bulan_hewan'   => 'required|numeric|min:0|max:12',
+      'usia_hari_hewan'    => 'required|numeric|min:0|max:30',
     ]);
 
     if ($validator->fails()) {
@@ -470,13 +473,23 @@ class PasienController extends Controller
 
     $patient_number = 'BVC-P-' . $getbranchuser->branch_code . '-' . str_pad($lastpatient + 1, 4, 0, STR_PAD_LEFT);
 
+    $petCategory = PetCategory::find($request->pet_category_id);
+
     $patient = Patient::create([
-      'id_member' => $patient_number,
-      'pet_category' => $request->kategori_hewan,
+      'id_member'          => $patient_number,
+      'pet_category'       => $petCategory->name,
+      'pet_category_id'    => $request->pet_category_id,
+      'other_pet_category' => $request->pet_category_id == 6 ? $request->other_pet_category : null,
       'pet_name' => $request->nama_hewan,
       'pet_gender' => $request->jenis_kelamin_hewan,
       'pet_year_age' => $request->usia_tahun_hewan,
       'pet_month_age' => $request->usia_bulan_hewan,
+      'pet_day_age' => $request->usia_hari_hewan,
+      'pet_birth_date' => \Carbon\Carbon::today()
+          ->subYears((int) $request->usia_tahun_hewan)
+          ->subMonths((int) $request->usia_bulan_hewan)
+          ->subDays((int) $request->usia_hari_hewan)
+          ->toDateString(),
       'owner_name' => '',
       'owner_address' => '',
       'owner_phone_number' => '',
@@ -503,14 +516,13 @@ class PasienController extends Controller
     }
 
     $validator = Validator::make($request->all(), [
-      'kategori_hewan' => 'required|min:3|max:50',
-      'nama_hewan' => 'required|min:3|max:50',
+      'pet_category_id'    => 'required|integer|exists:pet_categories,id',
+      'other_pet_category' => 'required_if:pet_category_id,6|nullable|string|max:50',
+      'nama_hewan'         => 'required|min:3|max:50',
       'jenis_kelamin_hewan' => 'required|string|max:50',
-      'usia_tahun_hewan' => 'required|numeric|min:0',
-      'usia_bulan_hewan' => 'required|numeric|min:0|max:12',
-      // 'nama_pemilik' => 'required|string|max:50',
-      // 'alamat_pemilik' => 'required|string|max:100',
-      // 'nomor_ponsel_pengirim' => 'required|numeric|digits_between:10,13',
+      'usia_tahun_hewan'   => 'required|numeric|min:0',
+      'usia_bulan_hewan'   => 'required|numeric|min:0|max:12',
+      'usia_hari_hewan'    => 'required|numeric|min:0|max:30',
     ]);
 
     if ($validator->fails()) {
@@ -618,12 +630,22 @@ class PasienController extends Controller
       $owner_id = $owner->id;
     }
 
-    $patient->id_member = $temp_id_member;
-    $patient->pet_category = $request->kategori_hewan;
+    $petCategory = PetCategory::find($request->pet_category_id);
+
+    $patient->id_member          = $temp_id_member;
+    $patient->pet_category       = $petCategory->name;
+    $patient->pet_category_id    = $request->pet_category_id;
+    $patient->other_pet_category = $request->pet_category_id == 6 ? $request->other_pet_category : null;
     $patient->pet_name = $request->nama_hewan;
     $patient->pet_gender = $request->jenis_kelamin_hewan;
-    $patient->pet_year_age = $request->usia_tahun_hewan;
+    $patient->pet_year_age  = $request->usia_tahun_hewan;
     $patient->pet_month_age = $request->usia_bulan_hewan;
+    $patient->pet_day_age   = $request->usia_hari_hewan;
+    $patient->pet_birth_date = \Carbon\Carbon::today()
+        ->subYears((int) $request->usia_tahun_hewan)
+        ->subMonths((int) $request->usia_bulan_hewan)
+        ->subDays((int) $request->usia_hari_hewan)
+        ->toDateString();
     // $patient->owner_name = $request->nama_pemilik;
     // $patient->owner_address = $request->alamat_pemilik;
     // $patient->owner_phone_number = $request->nomor_ponsel_pengirim;
@@ -693,6 +715,7 @@ class PasienController extends Controller
         'patients.pet_gender',
         'patients.pet_year_age',
         'patients.pet_month_age',
+        'patients.pet_day_age',
         DB::raw('(CASE WHEN patients.owner_name = "" THEN owners.owner_name ELSE patients.owner_name END) AS owner_name'),
         DB::raw('(CASE WHEN patients.owner_address = "" THEN owners.owner_address ELSE patients.owner_address END) AS owner_address'),
         DB::raw('(CASE WHEN patients.owner_phone_number = "" THEN owners.owner_phone_number ELSE patients.owner_phone_number END) AS owner_phone_number'),
@@ -948,6 +971,12 @@ class PasienController extends Controller
     return response()->json($data, 200);
   }
 
+  public function petCategories()
+  {
+    $categories = PetCategory::orderBy('id')->get(['id', 'name']);
+    return response()->json($categories, 200);
+  }
+
   public function ListOwner(Request $request)
   {
     $owner = DB::table('owners')
@@ -964,20 +993,23 @@ class PasienController extends Controller
       ->join('branches', 'patients.branch_id', '=', 'branches.id')
       ->join('users', 'patients.user_id', '=', 'users.id')
       ->join('owners', 'patients.owner_id', '=', 'owners.id')
+      ->leftJoin('pet_categories', 'patients.pet_category_id', '=', 'pet_categories.id')
       ->select(
         'patients.id',
         'patients.branch_id',
         'branches.branch_name',
         'patients.id_member',
-        'patients.pet_category',
+        'patients.pet_category_id',
+        'patients.other_pet_category',
+        DB::raw('CASE WHEN patients.pet_category_id = 6 AND patients.other_pet_category IS NOT NULL AND patients.other_pet_category != "" THEN patients.other_pet_category ELSE COALESCE(pet_categories.name, patients.pet_category) END as pet_category'),
         'patients.pet_name',
         'patients.pet_gender',
         'patients.pet_year_age',
         'patients.pet_month_age',
+        'patients.pet_day_age',
         DB::raw('(CASE WHEN patients.owner_name = "" THEN owners.owner_name ELSE patients.owner_name END) AS owner_name'),
         DB::raw('(CASE WHEN patients.owner_address = "" THEN owners.owner_address ELSE patients.owner_address END) AS owner_address'),
         DB::raw('(CASE WHEN patients.owner_phone_number = "" THEN owners.owner_phone_number ELSE patients.owner_phone_number END) AS owner_phone_number'),
-        'branches.branch_name',
         'users.fullname as created_by',
         DB::raw("DATE_FORMAT(patients.created_at, '%d %b %Y') as created_at"),
         'owners.id as owner_id',

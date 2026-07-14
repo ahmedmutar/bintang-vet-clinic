@@ -107,7 +107,7 @@ $(document).ready(function() {
     modalState = 'add';
     $('.modal-title').text('Tambah Pembayaran');
 
-    if (role.toLowerCase() == 'kasir') {
+    if (role.toLowerCase() == 'resepsionis') {
       loadBarang(branchId);
     }
 
@@ -204,6 +204,18 @@ $(document).ready(function() {
 
         if (getData.length) {
           $.each(getData, function(idx, v) {
+            const roleLower  = role.toLowerCase();
+            const isPaidOff  = v.status_paid_off == 1;
+
+            // Print: resepsionis, dokter, dan admin
+            const printDisabled = (roleLower !== 'resepsionis' && roleLower !== 'admin' && roleLower !== 'dokter');
+
+            // Edit: resepsionis dan admin saja
+            const editDisabled = (roleLower !== 'resepsionis' && roleLower !== 'admin');
+
+            // Delete: hanya admin
+            const deleteDisabled = (roleLower !== 'admin');
+
             listPembayaran += `<tr>`
               + `<td>${++idx}</td>`
               + `<td>${v.registration_number}</td>`
@@ -213,17 +225,18 @@ $(document).ready(function() {
               + `<td>${v.pet_name}</td>`
               + `<td>${v.complaint}</td>`
               + `<td>${(v.status_outpatient_inpatient == 1) ? 'Rawat Inap' : 'Rawat Jalan'}</td>`
+              + `<td>${isPaidOff ? '<span class="label label-success">Lunas</span>' : '<span class="label label-warning">Belum Lunas</span>'}</td>`
               + `<td>${v.created_by}</td>`
               + `<td>
                   <button type="button" class="btn btn-info openDetail" value=${v.list_of_payment_id} title="Detail"><i class="fa fa-eye" aria-hidden="true"></i></button>
-                  <button type="button" class="btn btn-warning openFormEdit" value=${v.list_of_payment_id}><i class="fa fa-pencil" aria-hidden="true"></i></button>
-                  <button type="button" class="btn btn-danger openFormDelete"
-                    ${role.toLowerCase() != 'admin' ? 'disabled' : ''} value=${v.list_of_payment_id}><i class="fa fa-trash-o" aria-hidden="true"></i></button>
+                  <button type="button" class="btn btn-info onCetak m-r-3px" ${printDisabled ? 'disabled title="Hanya resepsionis dan admin yang dapat mencetak"' : ''} value=${v.list_of_payment_id}><i class="fa fa-print" aria-hidden="true"></i></button>
+                  <button type="button" class="btn btn-warning openFormEdit" ${editDisabled ? 'disabled title="Hanya resepsionis dan admin yang dapat mengedit"' : ''} value=${v.list_of_payment_id}><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                  <button type="button" class="btn btn-danger openFormDelete" ${deleteDisabled ? 'disabled title="Hanya admin yang dapat menghapus"' : ''} value=${v.list_of_payment_id}><i class="fa fa-trash-o" aria-hidden="true"></i></button>
                 </td>`
               + `</tr>`;
           });
         } else {
-          listPembayaran += `<tr class="text-center"><td colspan="10">Tidak ada data.</td></tr>`;
+          listPembayaran += `<tr class="text-center"><td colspan="11">Tidak ada data.</td></tr>`;
         }
 
 				$('#list-pembayaran').append(listPembayaran);
@@ -234,18 +247,43 @@ $(document).ready(function() {
 					window.location.href = $('.baseUrl').val() + `/pembayaran/detail/${$(this).val()}`;
         });
 
+        $('.onCetak').click(function() {
+          const listOfPaymentId = $(this).val();
+          $.ajax({
+            url    : $('.baseUrl').val() + '/api/pembayaran/detail',
+            headers: { 'Authorization': `Bearer ${token}` },
+            type   : 'GET',
+            data   : { list_of_payment_id: listOfPaymentId },
+            beforeSend: function() { $('#loading-screen').show(); },
+            success: function(resp) {
+              const checkUpResultId  = resp.check_up_result_id;
+              const servicePayment   = resp.services.length
+                ? resp.services.map(s => ({ detail_service_patient_id: s.detail_service_patient_id, status: null }))
+                : [{ detail_service_patient_id: null, status: null }];
+              const itemPayment      = resp.item.length
+                ? resp.item.map(i => ({ medicine_group_id: i.medicine_group_id, quantity: i.quantity, status: null }))
+                : [{ medicine_group_id: null, quantity: null, status: null }];
+              processPrint(checkUpResultId, JSON.stringify(servicePayment), JSON.stringify(itemPayment));
+            },
+            complete: function() { $('#loading-screen').hide(); },
+            error: function(err) {
+              if (err.status == 401) {
+                localStorage.removeItem('vet-clinic');
+                location.href = $('.baseUrl').val() + '/masuk';
+              }
+            }
+          });
+        });
+
 				$('.openFormEdit').click(function() {
 					window.location.href = $('.baseUrl').val() + `/pembayaran/edit/${$(this).val()}`;
 				});
 
 				$('.openFormDelete').click(function() {
           getId = $(this).val();
-
-					if (role.toLowerCase() == 'admin') {
-            $('#modal-confirmation .modal-title').text('Peringatan');
-						$('#modal-confirmation .box-body').text('Anda yakin ingin menghapus data ini?');
-						$('#modal-confirmation').modal('show');
-          }
+          $('#modal-confirmation .modal-title').text('Peringatan');
+          $('#modal-confirmation .box-body').text('Anda yakin ingin menghapus data ini?');
+          $('#modal-confirmation').modal('show');
 				});
 
         $('.openFormDeletePetShop').click(function() {
@@ -643,7 +681,7 @@ $(document).ready(function() {
 
         const getMasterPaymentId = resp.master_payment_petshop_id;
 
-        processPrint(getMasterPaymentId);
+        processPrintPetShop(getMasterPaymentId);
 
         setTimeout(() => {
           $('#modal-tambah-pembayaran').modal('toggle');
@@ -666,9 +704,65 @@ $(document).ready(function() {
 
   });
 
-  function processPrint(master_payment_id) {
-    let url = '/pembayaranpetshop/printreceipt/' + master_payment_id;
-    window.open($('.baseUrl').val() + url, '_blank');
+  function processPrintPetShop(master_payment_id) {
+    let downloadUrl = $('.baseUrl').val() + '/pembayaranpetshop/printinvoice/' + master_payment_id + '?token=' + token;
+    $.ajax({
+      url      : downloadUrl,
+      type     : 'GET',
+      xhrFields: { responseType: 'blob' },
+      beforeSend: function() { $('#loading-screen').show(); },
+      success: function(data, status, xhr) {
+        let disposition = xhr.getResponseHeader('content-disposition');
+        let matches  = /"([^"]*)"/.exec(disposition);
+        let filename = (matches != null && matches[1]) ? matches[1] : `invoice-petshop-${master_payment_id}.pdf`;
+        let blob = new Blob([data], { type: 'application/pdf' });
+        let url  = URL.createObjectURL(blob);
+        let a    = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      },
+      complete: function() { $('#loading-screen').hide(); },
+      error: function(err) {
+        console.error('Gagal mengunduh invoice pet shop:', err);
+        alert('Gagal mengunduh invoice pembayaran pet shop.');
+      }
+    });
+  }
+
+  function processPrint(check_up_result_id, service_payment, item_payment) {
+    let downloadUrl = '/pembayaran/print/' + check_up_result_id + '/' + service_payment + '/' + item_payment;
+    $.ajax({
+      url       : downloadUrl,
+      headers   : { 'Authorization': `Bearer ${token}` },
+      type      : 'GET',
+      xhrFields : { responseType: 'blob' },
+      beforeSend: function() { $('#loading-screen').show(); },
+      success: function(data, status, xhr) {
+        let disposition = xhr.getResponseHeader('content-disposition');
+        let matches  = /"([^"]*)"/.exec(disposition);
+        let filename = (matches != null && matches[1]) ? matches[1] : `receipt-${check_up_result_id}.pdf`;
+        let blob = new Blob([data], { type: 'application/pdf' });
+        let url  = URL.createObjectURL(blob);
+        let a    = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      },
+      complete: function() { $('#loading-screen').hide(); },
+      error: function(err) {
+        if (err.status == 401) {
+          localStorage.removeItem('vet-clinic');
+          location.href = $('.baseUrl').val() + '/masuk';
+        }
+      }
+    });
   }
 
 });

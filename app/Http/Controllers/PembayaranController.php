@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CheckUpFollowUp;
 use App\Models\CheckUpResult;
 use App\Models\DetailServicePatient;
 use App\Models\Detail_medicine_group_check_up_result;
@@ -9,6 +10,7 @@ use App\Models\ListofItemsPetShop;
 use App\Models\ListofPaymentItem;
 use App\Models\ListofPayments;
 use App\Models\ListofPaymentService;
+use App\Models\NotificationTemplate;
 use App\Models\list_of_payment_medicine_groups;
 use App\Models\payment_petshop_with_clinic;
 use DB;
@@ -19,38 +21,61 @@ class PembayaranController extends Controller
 {
   public function DropDownPatient(Request $request)
   {
-    $data_check = DB::table('list_of_payments')
-      ->select('list_of_payments.check_up_result_id')
-      ->get();
-
-    $res = "";
-
-    foreach ($data_check as $dat) {
-      $res = $res . (string) $dat->check_up_result_id . ",";
-    }
-
-    $res = rtrim($res, ", ");
-
-    $myArray = explode(',', $res);
-
     $data = DB::table('check_up_results')
-      ->join('registrations', 'check_up_results.patient_registration_id', '=', 'registrations.id')
-      ->join('users', 'registrations.user_id', '=', 'users.id')
-      ->join('users as user_doctor', 'registrations.doctor_user_id', '=', 'user_doctor.id')
-      ->join('branches', 'user_doctor.branch_id', '=', 'branches.id')
-      ->join('patients', 'registrations.patient_id', '=', 'patients.id')
-      ->select('check_up_results.id as check_up_result_id', 'registrations.id_number as registration_number', 'patients.pet_name');
+      ->join('registrations', function ($join) {
+        $join->on('check_up_results.patient_registration_id', '=', 'registrations.id')
+          ->where('check_up_results.status_paid_off', '=', 0);
+      })
+      ->join('users',                  'registrations.user_id',        '=', 'users.id')
+      ->join('users as user_doctor',   'registrations.doctor_user_id', '=', 'user_doctor.id')
+      ->join('branches',               'user_doctor.branch_id',        '=', 'branches.id')
+      ->join('patients',               'registrations.patient_id',     '=', 'patients.id')
+      ->select(
+        'check_up_results.id as check_up_result_id',
+        'registrations.id_number as registration_number',
+        'patients.pet_name'
+      )
+      ->selectSub(function ($query) {
+        $query->from('list_of_payment_services')
+          ->selectRaw('COUNT(*)')
+          ->whereColumn('list_of_payment_services.check_up_result_id', 'check_up_results.id');
+      }, 'count_payed_service')
+      ->selectSub(function ($query) {
+        $query->from('detail_service_patients')
+          ->selectRaw('COUNT(*)')
+          ->whereColumn('detail_service_patients.check_up_result_id', 'check_up_results.id');
+      }, 'count_service')
+      ->selectSub(function ($query) {
+        $query->from('list_of_payment_medicine_groups as lopm')
+          ->join('detail_medicine_group_check_up_results as dmg', 'lopm.detail_medicine_group_check_up_result_id', '=', 'dmg.id')
+          ->selectRaw('COUNT(*)')
+          ->whereColumn('dmg.check_up_result_id', 'check_up_results.id');
+      }, 'count_payed_item')
+      ->selectSub(function ($query) {
+        $query->from('detail_medicine_group_check_up_results')
+          ->selectRaw('COUNT(*)')
+          ->whereColumn('detail_medicine_group_check_up_results.check_up_result_id', 'check_up_results.id');
+      }, 'count_item')
+      // ->whereNotExists(function ($sub) {
+      //   $sub->select(DB::raw(1))
+      //     ->from('list_of_payments')
+      //     ->whereColumn('list_of_payments.check_up_result_id', 'check_up_results.id');
+      // })
+      ->whereNotBetween(
+        DB::raw('DATE(check_up_results.created_at)'),
+        ['2021-07-01', '2023-12-31']
+      )
+      // Only show data from the last 2 months
+      ->where('check_up_results.created_at', '>=', now()->subMonths(2))
+      // Exclude rows that are already fully paid off (services and items both fully matched)
+      ->havingRaw('NOT (count_payed_service = count_service AND count_payed_item = count_item)');
 
-    $data = $data->whereNotIn('check_up_results.id', $myArray)
-      ->whereNotBetween(DB::raw('DATE(check_up_results.created_at)'), ['2021-07-01', '2023-12-31']);
-
-    if ($request->user()->role == 'resepsionis' || $request->user()->role == 'dokter') {
-      $data = $data->where('user_doctor.branch_id', '=', $request->user()->branch_id);
+    // Branch filter only applies to receptionist / doctor roles
+    if (in_array($request->user()->role, ['resepsionis', 'dokter'])) {
+      $data->where('user_doctor.branch_id', '=', $request->user()->branch_id);
     }
 
-    $data = $data->get();
-
-    return response()->json($data, 200);
+    return response()->json($data->orderBy('check_up_results.created_at', 'desc')->get(), 200);
   }
 
   public function index(Request $request)
@@ -66,6 +91,7 @@ class PembayaranController extends Controller
       ->join('branches', 'users.branch_id', '=', 'branches.id')
       ->join('registrations', 'check_up_results.patient_registration_id', '=', 'registrations.id')
       ->join('patients', 'registrations.patient_id', '=', 'patients.id')
+      ->leftJoin('complaints', 'registrations.complaint_id', '=', 'complaints.id')
       ->select(
         'list_of_payments.id as list_of_payment_id',
         'check_up_results.id as check_up_result_id',
@@ -73,10 +99,14 @@ class PembayaranController extends Controller
         'patients.id_member as patient_number',
         'patients.pet_category',
         'patients.pet_name',
-        'registrations.complaint',
+        'registrations.complaint_id',
+        'registrations.other_complaint',
+        DB::raw('CASE WHEN registrations.complaint_id = 11 AND registrations.other_complaint IS NOT NULL THEN registrations.other_complaint ELSE COALESCE(complaints.name, registrations.complaint) END AS complaint'),
         'check_up_results.status_outpatient_inpatient',
+        'check_up_results.status_paid_off',
+        'list_of_payments.user_id',
         'users.fullname as created_by',
-        DB::raw("DATE_FORMAT(list_of_payments.created_at, '%d %b %Y') as created_at")
+        DB::raw("DATE_FORMAT(list_of_payments.created_at, '%d %b %Y %H:%i:%s') as created_at")
       );
 
     if ($request->keyword) {
@@ -388,19 +418,24 @@ class PembayaranController extends Controller
     $registration = DB::table('registrations')
       ->join('patients', 'registrations.patient_id', '=', 'patients.id')
       ->join('owners', 'patients.owner_id', '=', 'owners.id')
+      ->leftJoin('pet_categories', 'patients.pet_category_id', '=', 'pet_categories.id')
+      ->leftJoin('complaints', 'registrations.complaint_id', '=', 'complaints.id')
       ->select(
         'registrations.id_number as registration_number',
         'patients.id as patient_id',
         'patients.id_member as patient_number',
-        'patients.pet_category',
+        DB::raw('CASE WHEN patients.pet_category_id = 6 AND patients.other_pet_category IS NOT NULL AND patients.other_pet_category != "" THEN patients.other_pet_category ELSE COALESCE(pet_categories.name, patients.pet_category) END as pet_category'),
         'patients.pet_name',
         'patients.pet_gender',
-        'patients.pet_year_age',
-        'patients.pet_month_age',
+        DB::raw('COALESCE(registrations.pet_year_age, patients.pet_year_age) as pet_year_age'),
+        DB::raw('COALESCE(registrations.pet_month_age, patients.pet_month_age) as pet_month_age'),
+        DB::raw('COALESCE(registrations.pet_day_age, patients.pet_day_age) as pet_day_age'),
         DB::raw('(CASE WHEN patients.owner_name = "" THEN owners.owner_name ELSE patients.owner_name END) AS owner_name'),
         DB::raw('(CASE WHEN patients.owner_address = "" THEN owners.owner_address ELSE patients.owner_address END) AS owner_address'),
         DB::raw('(CASE WHEN patients.owner_phone_number = "" THEN owners.owner_phone_number ELSE patients.owner_phone_number END) AS owner_phone_number'),
-        'registrations.complaint',
+        'registrations.complaint_id',
+        'registrations.other_complaint',
+        DB::raw('CASE WHEN registrations.complaint_id = 11 AND registrations.other_complaint IS NOT NULL THEN registrations.other_complaint ELSE COALESCE(complaints.name, registrations.complaint) END AS complaint'),
         'registrations.registrant'
       )
       ->where('registrations.id', '=', $data_check_up_result->patient_registration_id)
@@ -645,28 +680,27 @@ class PembayaranController extends Controller
 
   public function create(Request $request)
   {
-    $check_list_of_payment = DB::table('list_of_payments')
-      ->where('check_up_result_id', '=', $request->check_up_result_id)
-      ->count();
-
-    if ($check_list_of_payment != 0) {
-
-      return response()->json([
-        'message' => 'The given data was invalid.',
-        'errors' => ['Data Pembayaran ini sudah pernah ada!'],
-      ], 422);
-    }
-
     $check_up_result = DB::table('check_up_results')
       ->select('status_paid_off')
       ->where('id', '=', $request->check_up_result_id)
       ->first();
 
     if ($check_up_result->status_paid_off == 1) {
-
       return response()->json([
         'message' => 'The given data was invalid.',
         'errors' => ['Data Pemeriksaan ini sudah pernah dilunaskan!'],
+      ], 422);
+    }
+
+    $existing_payment = DB::table('list_of_payments')
+      ->where('check_up_result_id', '=', $request->check_up_result_id)
+      ->first();
+
+    if ($existing_payment) {
+      return response()->json([
+        'message'             => 'The given data was invalid.',
+        'errors'              => ['Pembayaran sudah pernah dibuat, silakan lanjutkan melalui halaman edit.'],
+        'redirect_payment_id' => $existing_payment->id,
       ], 422);
     }
 
@@ -937,6 +971,8 @@ class PembayaranController extends Controller
       ->where('check_up_result_id', '=', $request->check_up_result_id)
       ->count();
 
+    $is_paid_off = false;
+
     if ($count_payed_service == $count_service && $count_payed_item == $count_item) {
 
       $check_up_result = CheckUpResult::find($request->check_up_result_id);
@@ -945,11 +981,16 @@ class PembayaranController extends Controller
       $check_up_result->user_update_id = $request->user()->id;
       $check_up_result->updated_at = \Carbon\Carbon::now();
       $check_up_result->save();
+
+      $this->createFollowUpOnPayment($request->check_up_result_id, $request->user()->id);
+
+      $is_paid_off = true;
     }
 
     return response()->json(
       [
-        'message' => 'Tambah Data Berhasil!',
+        'message'     => 'Tambah Data Berhasil!',
+        'is_paid_off' => $is_paid_off,
       ],
       200
     );
@@ -1286,6 +1327,8 @@ class PembayaranController extends Controller
       $check_up_result->user_update_id = $request->user()->id;
       $check_up_result->updated_at = \Carbon\Carbon::now();
       $check_up_result->save();
+
+      $this->createFollowUpOnPayment($request->check_up_result_id, $request->user()->id);
     }
 
     $list_of_payment = ListofPayments::where('check_up_result_id', '=', $request->check_up_result_id)
@@ -1688,5 +1731,57 @@ class PembayaranController extends Controller
     // $pdf = PDF::loadview('invoice', $data);
 
     // return $pdf->download($data_patient[0]->id_number . ' - ' . $data_patient[0]->pet_name . '.pdf');
+  }
+
+  private function createFollowUpOnPayment(int $checkUpResultId, int $userId): void
+  {
+    $checkUpResult = CheckUpResult::find($checkUpResultId);
+
+    if (!$checkUpResult || !$checkUpResult->status_pengabaran) {
+      return;
+    }
+
+    // Ambil data registrasi + pemilik + branch dokter
+    $reg = DB::table('registrations')
+      ->join('patients', 'registrations.patient_id', '=', 'patients.id')
+      ->join('owners', 'patients.owner_id', '=', 'owners.id')
+      ->join('users as doc', 'registrations.doctor_user_id', '=', 'doc.id')
+      ->select(
+        DB::raw('TRIM(COALESCE(NULLIF(patients.owner_phone_number,""), owners.owner_phone_number, "")) as phone'),
+        DB::raw('TRIM(COALESCE(NULLIF(patients.owner_name,""), owners.owner_name, "")) as owner_name'),
+        'patients.pet_name',
+        'registrations.complaint_id',
+        'doc.branch_id'
+      )
+      ->where('registrations.id', $checkUpResult->patient_registration_id)
+      ->first();
+
+    if (!$reg || empty($reg->phone)) {
+      return;
+    }
+
+    $complaintId = (int) ($reg->complaint_id ?? 11);
+    $branchId    = (int) ($reg->branch_id ?? 0);
+
+    $tpl     = NotificationTemplate::getByComplaint($complaintId, $branchId);
+    $message = $tpl['message'];
+    $days    = $tpl['days'];
+
+    // Batalkan follow-up pending sebelumnya jika ada
+    CheckUpFollowUp::where('check_up_result_id', $checkUpResultId)
+      ->where('status', 'pending')
+      ->update(['status' => 'cancelled']);
+
+    CheckUpFollowUp::create([
+      'check_up_result_id' => $checkUpResultId,
+      'branch_id'          => $branchId,
+      'owner_phone'        => $reg->phone,
+      'owner_name'         => $reg->owner_name,
+      'pet_name'           => $reg->pet_name,
+      'message'            => $message,
+      'scheduled_date'     => now()->addDays($days)->toDateString(),
+      'status'             => 'pending',
+      'user_id'            => $userId,
+    ]);
   }
 }

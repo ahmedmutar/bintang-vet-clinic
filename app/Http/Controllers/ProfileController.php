@@ -6,6 +6,8 @@ use App\Models\User;
 use DB;
 use File;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use JWTAuth;
 use Response;
 use Validator;
 
@@ -109,6 +111,46 @@ class ProfileController extends Controller
                 'errors' => ['User tidak valid!'],
             ], 422);
         }
+    }
+
+    public function change_password(Request $request)
+    {
+        $messages = [
+            'new_password.regex' => 'Password baru harus mengandung huruf besar, huruf kecil, simbol, dan angka!',
+        ];
+
+        $validator = Validator::make($request->all(), [
+            'old_password'     => 'required|string',
+            'new_password'     => 'required|min:8|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/',
+            'confirm_password' => 'required|string|same:new_password',
+        ], $messages);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Data yang dimasukkan tidak valid!',
+                'errors'  => $validator->errors()->all(),
+            ], 422);
+        }
+
+        $user = User::find($request->user()->id);
+
+        if (!Hash::check($request->old_password, $user->password)) {
+            return response()->json([
+                'message' => 'Data yang dimasukkan tidak valid!',
+                'errors'  => ['Password lama yang dimasukkan salah!'],
+            ], 422);
+        }
+
+        $user->password   = bcrypt($request->new_password);
+        $user->updated_at = \Carbon\Carbon::now();
+        $user->save();
+
+        JWTAuth::invalidate(JWTAuth::getToken());
+
+        return response()->json([
+            'message'      => 'Berhasil mengubah Password',
+            'force_logout' => true,
+        ], 200);
     }
 
     public function get_data_user(Request $request)

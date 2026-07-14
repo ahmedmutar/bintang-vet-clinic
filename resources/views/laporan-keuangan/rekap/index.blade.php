@@ -6,15 +6,20 @@
     <h3 class="box-title">Rekapitulasi</h3>
     <div class="inner-box-title">
 
-      <div class="section-left-box-title">
-        <label class="label-date">Pilih Tanggal</label>
-        <div class="input-group date">
-          <div class="input-group-addon">
-            <i class="fa fa-calendar"></i>
+      <div class="section-left-box-title" id="dateFilterSection" style="display:none;">
+        <label class="label-date" id="dateFilterLabel">Pilih Tanggal</label>
+        <div id="monthYearPicker">
+          <div class="input-group date" id="datepickerFrom">
+            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+            <input type="text" class="form-control" id="datepickerFromInput" placeholder="Dari mm-yyyy" autocomplete="off">
           </div>
-          <input type="text" class="form-control" id="datepicker" placeholder="mm-yyyy" autocomplete="off">
+          <span>s/d</span>
+          <div class="input-group date" id="datepickerTo">
+            <div class="input-group-addon"><i class="fa fa-calendar"></i></div>
+            <input type="text" class="form-control" id="datepickerToInput" placeholder="Sampai mm-yyyy" autocomplete="off">
+          </div>
         </div>
-
+        <select id="filterYear" class="form-control" style="display:none;"></select>
       </div>
 
       <div class="section-right-box-title">
@@ -36,7 +41,7 @@
       </div>
     </div>
     <div class="box-body">
-      <div id="rekapWidget" style="width:100%; height:100%"></div>
+      <div id="rekapWidget"></div>
     </div>
 
   </div>
@@ -67,6 +72,7 @@
       <ul class="pagination pagination-sm m-t-10px pull-left"></ul>
     </div>
   </div>
+
 </div>
 
 @component('layout.message-box')

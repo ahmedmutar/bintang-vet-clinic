@@ -37,6 +37,7 @@ $(document).ready(function() {
 	}
 
 	loadPasien();
+	loadPetCategories();
 
 	$('.input-search-section .fa').click(function() {
 		onSearch($('.input-search-section input').val());
@@ -100,10 +101,12 @@ $(document).ready(function() {
   });
   $('#ownerName').keyup(function () { ownerNameValue = $(this).val(); validationForm(); });
 	$('#animalSex').on('select2:select', function (e) { validationForm(); });
-	$('#animalType').keyup(function () { validationForm(); });
+	$('#animalType').on('select2:select', function () { onAnimalTypeChange(); validationForm(); });
+	$('#otherAnimalType').keyup(function () { validationForm(); });
 	$('#animalName').keyup(function () { validationForm(); });
 	$('#animalAgeYear').keyup(function () { validationForm(); });
 	$('#animalAgeMonth').keyup(function () { validationForm(); });
+	$('#animalAgeDay').keyup(function () { validationForm(); });
 	$('#ownerName').keyup(function () { validationForm(); });
 	$('#ownerAddress').keyup(function () { validationForm(); });
 	$('#ownerTelp').keyup(function () { validationForm(); });
@@ -121,11 +124,13 @@ $(document).ready(function() {
     if (modalState == 'add') {
 
 			const fd = new FormData();
-			fd.append('kategori_hewan', $('#animalType').val());
+			fd.append('pet_category_id', $('#animalType').val());
+			fd.append('other_pet_category', $('#animalType').val() == 6 ? $('#otherAnimalType').val() : '');
 			fd.append('nama_hewan', $('#animalName').val());
 			fd.append('jenis_kelamin_hewan', $('#animalSex').val());
       fd.append('usia_tahun_hewan', $('#animalAgeYear').val());
       fd.append('usia_bulan_hewan', $('#animalAgeMonth').val());
+      fd.append('usia_hari_hewan', $('#animalAgeDay').val());
       fd.append('id_pemilik', (isTambahPemilik ? '' : ownerId));
 			fd.append('nama_pemilik', ownerNameValue);
 			fd.append('alamat_pemilik', $('#ownerAddress').val());
@@ -177,11 +182,13 @@ $(document).ready(function() {
       // process edit
       const datas = {
         id: getId,
-        kategori_hewan: $('#animalType').val(),
+        pet_category_id: $('#animalType').val(),
+        other_pet_category: $('#animalType').val() == 6 ? $('#otherAnimalType').val() : '',
         nama_hewan: $('#animalName').val(),
         jenis_kelamin_hewan: $('#animalSex').val(),
         usia_tahun_hewan: $('#animalAgeYear').val(),
 				usia_bulan_hewan: $('#animalAgeMonth').val(),
+				usia_hari_hewan: $('#animalAgeDay').val(),
         id_pemilik: (isTambahPemilik ? ((ownerId == 0) ? 0 : '') : ownerId),
 				nama_pemilik: ownerNameValue,
 				alamat_pemilik: $('#ownerAddress').val(),
@@ -301,7 +308,7 @@ $(document).ready(function() {
               + `<td>${v.pet_name}</td>`
               + `<td>${v.owner_name}</td>`
               + `<td>${v.pet_gender}</td>`
-              + `<td>${v.pet_year_age} Tahun</td>`
+              + `<td>${v.pet_year_age} Tahun ${v.pet_month_age} Bulan ${v.pet_day_age} Hari</td>`
               + `<td>${v.branch_name}</td>`
               + `<td>${v.created_by}</td>`
               + ((role.toLowerCase() == 'resepsionis') ? `` : `<td>
@@ -343,10 +350,16 @@ $(document).ready(function() {
 
           $('#noRegisTxt').text(getObj.id_member);
 					$('#animalSex').val(getObj.pet_gender); $('#animalSex').trigger('change');
-					$('#animalType').val(getObj.pet_category);
+					$('#animalType').val(getObj.pet_category_id); $('#animalType').trigger('change');
+					if (getObj.pet_category_id == 6) {
+						$('#otherAnimalType').show().val(getObj.other_pet_category);
+					} else {
+						$('#otherAnimalType').hide().val('');
+					}
 					$('#animalName').val(getObj.pet_name);
 					$('#animalAgeYear').val(getObj.pet_year_age);
 					$('#animalAgeMonth').val(getObj.pet_month_age);
+					$('#animalAgeDay').val(getObj.pet_day_age);
           $('#ownerName').val(ownerNameValue);
           $('#ownerAddress').val(getObj.owner_address);
           $('#ownerTelp').val(getObj.owner_phone_number);
@@ -427,6 +440,29 @@ $(document).ready(function() {
 		});
   }
 
+	function loadPetCategories() {
+		$.ajax({
+			url    : $('.baseUrl').val() + '/api/pasien/pet-categories',
+			headers: { 'Authorization': `Bearer ${token}` },
+			type   : 'GET',
+			success: function(data) {
+				let opts = '<option value="">Pilih Jenis Hewan</option>';
+				data.forEach(function(cat) {
+					opts += `<option value="${cat.id}">${cat.name}</option>`;
+				});
+				$('#animalType').html(opts);
+			}
+		});
+	}
+
+	function onAnimalTypeChange() {
+		if ($('#animalType').val() == 6) {
+			$('#otherAnimalType').show();
+		} else {
+			$('#otherAnimalType').hide().val('');
+		}
+	}
+
 	function loadCabang() {
 		$.ajax({
 			url     : $('.baseUrl').val() + '/api/cabang',
@@ -462,7 +498,8 @@ $(document).ready(function() {
 			$('#branchErr1').text(''); isValidBranch = true;
     }
 
-		if (!$('#animalType').val()) {
+		const animalTypeVal = $('#animalType').val();
+		if (!animalTypeVal || (animalTypeVal == 6 && !$('#otherAnimalType').val())) {
 			$('#animalTypeErr1').text('Jenis hewan harus di isi'); isValidAnimalType = false;
 		} else {
 			$('#animalTypeErr1').text(''); isValidAnimalType = true;
@@ -480,8 +517,12 @@ $(document).ready(function() {
 			$('#animalSexErr1').text(''); isValidAnimalSex = true;
     }
 
-    if (!$('#animalAgeYear').val() || !$('#animalAgeMonth').val()) {
+    if (!$('#animalAgeYear').val() || !$('#animalAgeMonth').val() || !$('#animalAgeDay').val()) {
 			$('#animalAgeErr1').text('Usia Hewan harus di isi'); isValidAnimalAge = false;
+		} else if (parseInt($('#animalAgeMonth').val()) > 12) {
+			$('#animalAgeErr1').text('Bulan tidak boleh lebih dari 12'); isValidAnimalAge = false;
+		} else if (parseInt($('#animalAgeDay').val()) > 30) {
+			$('#animalAgeErr1').text('Hari tidak boleh lebih dari 30'); isValidAnimalAge = false;
 		} else {
 			$('#animalAgeErr1').text(''); isValidAnimalAge = true;
     }
@@ -517,9 +558,11 @@ $(document).ready(function() {
 
 	function refreshForm() {
     $('#branch').val(null); $('#branch').trigger('change');
-		$('#animalType').val(null); $('#animalSex').val(null);
+		$('#animalType').val(null); $('#animalType').trigger('change');
+		$('#otherAnimalType').hide().val('');
+		$('#animalSex').val(null);
     $('#animalName').val(null); $('#ownerTelp').val(null);
-		$('#animalAgeYear').val(null); $('#ownerAddress').val(null);
+		$('#animalAgeYear').val(null); $('#animalAgeDay').val(null); $('#ownerAddress').val(null);
 
     $('#ownerName').val(null); ownerNameValue = ''; ownerId = null;
     $('#ownerDropdown').val(null); $('#ownerDropdown').trigger('change');
@@ -527,6 +570,7 @@ $(document).ready(function() {
     $('#animalSexErr1').text(''); isValidAnimalSex = true;
     $('#branchErr1').text(''); isValidBranch = true;
     $('#animalAgeMonth').val(null); isValidAnimalAgeMonth = true;
+    $('#animalAgeDay').val(null); isValidAnimalAgeDay = true;
     $('#animalTypeErr1').text(''); isValidAnimalType = true;
     $('#animalNameErr1').text('');isValidAnimalName = true;
     $('#animalAgeErr1').text(''); isValidAnimalAgeYear = true;
@@ -541,6 +585,7 @@ $(document).ready(function() {
 	}
 
 	function formConfigure() {
+		$('#animalType').select2({ placeholder: 'Pilih Jenis Hewan' });
 		$('#animalSex').select2();
     $('#ownerDropdown').select2();
 		$('#modal-pasien').modal('show');

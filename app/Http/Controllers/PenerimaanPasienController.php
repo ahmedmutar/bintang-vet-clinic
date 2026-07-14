@@ -31,6 +31,7 @@ class PenerimaanPasienController extends Controller
             ->join('patients', 'registrations.patient_id', '=', 'patients.id')
             ->join('owners', 'patients.owner_id', '=', 'owners.id')
             ->join('branches', 'patients.branch_id', '=', 'branches.id')
+            ->leftJoin('complaints', 'registrations.complaint_id', '=', 'complaints.id')
             ->select(
                 'registrations.id as id',
                 'registrations.id_number',
@@ -41,16 +42,19 @@ class PenerimaanPasienController extends Controller
                 'patients.pet_gender',
                 'patients.pet_year_age',
                 'patients.pet_month_age',
+                'patients.pet_day_age',
                 DB::raw('(CASE WHEN patients.owner_name = "" THEN owners.owner_name ELSE patients.owner_name END) AS owner_name'),
                 DB::raw('(CASE WHEN patients.owner_address = "" THEN owners.owner_address ELSE patients.owner_address END) AS owner_address'),
                 DB::raw('(CASE WHEN patients.owner_phone_number = "" THEN owners.owner_phone_number ELSE patients.owner_phone_number END) AS owner_phone_number'),
-                'complaint',
+                'registrations.complaint_id',
+                'registrations.other_complaint',
+                DB::raw('CASE WHEN registrations.complaint_id = 11 AND registrations.other_complaint IS NOT NULL THEN registrations.other_complaint ELSE COALESCE(complaints.name, registrations.complaint) END AS complaint'),
                 'registrant',
                 'user_doctor.id as user_doctor_id',
                 'user_doctor.username as username_doctor',
                 'users.fullname as created_by',
                 'registrations.acceptance_status',
-                DB::raw("DATE_FORMAT(registrations.created_at, '%d %b %Y') as created_at"),
+                DB::raw("DATE_FORMAT(registrations.created_at, '%d %b %Y %H:%i:%s') as created_at"),
                 'users.branch_id as user_branch_id')
             ->where('registrations.acceptance_status', '=', '0')
             ->where('registrations.isDeleted', '=', '0');

@@ -31,8 +31,7 @@
             <th class="onOrdering" data='pet_name' orderby="none">Nama Hewan <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='owner_name' orderby="none">Nama Pemilik <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='complaint' orderby="none">Keluhan <span class="fa fa-sort"></span></th>
-            <th class="onOrdering" data='status_finish' orderby="none">Status Pemeriksaan <span class="fa fa-sort"></span></th>
-            <th class="onOrdering" data='status_outpatient_inpatient' orderby="none">Perawatan <span class="fa fa-sort"></span></th>
+<th class="onOrdering" data='status_outpatient_inpatient' orderby="none">Perawatan <span class="fa fa-sort"></span></th>
             <th class="onOrdering" data='created_by' orderby="none">Dibuat Oleh <span class="fa fa-sort"></span></th>
             <th>Aksi</th>
           </tr>

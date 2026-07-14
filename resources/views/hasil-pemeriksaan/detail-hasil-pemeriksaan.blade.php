@@ -45,7 +45,8 @@
                 <div class="label-detail-div">Usia Hewan</div>
                 <div class="p-left-10px">
                   <span id="usiaHewanTahunDetailTxt"></span>&nbsp;&nbsp;
-                  <span id="usiaHewanBulanDetailTxt"></span>
+                  <span id="usiaHewanBulanDetailTxt"></span>&nbsp;&nbsp;
+                  <span id="usiaHewanHariDetailTxt"></span>
                 </div>
               </div>
               <div class="d-flex m-b-10px">
@@ -54,7 +55,7 @@
               </div>
             </div>
             <div class="col-md-6">
-              
+
               <div class="d-flex m-b-10px">
                 <div class="label-detail-div">Nama Pendaftar</div>
                 <div id="namaPendaftarDetailTxt" class="p-left-10px"></div>
@@ -107,14 +108,14 @@
                 </table>
               </div>
             </div>
-    
+
             <div class="col-md-6 m-b-10px">
               <div class="d-flex">
                 <div class="label-detail-div">Rawat Inap</div>
                 <div id="rawatInapDetailTxt" class="value-detail-div p-left-10px"></div>
               </div>
             </div>
-    
+
             <div class="col-md-12 m-b-10px">
               <div class="m-b-10px" style="font-weight: 700;">Deskripsi Kondisi Pasien</div>
               <div class="table-responsive">
@@ -133,7 +134,7 @@
                 </table>
               </div>
             </div>
-    
+
             <div class="col-md-6 m-b-10px">
               <div class="d-flex">
                 <div class="label-detail-div">Status Pemeriksaan</div>

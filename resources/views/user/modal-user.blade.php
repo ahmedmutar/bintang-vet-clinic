@@ -71,6 +71,7 @@
                   <option value="admin">Admin</option>
                   <option value="resepsionis">Resepsionis</option>
                   <option value="dokter">Dokter</option>
+                  <option value="paramedis">Paramedis</option>
                 </select>
                 <div id="roleErr1" class="validate-error"></div>
               </div>

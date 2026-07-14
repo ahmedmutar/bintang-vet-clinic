@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\JWTException;
@@ -435,6 +436,48 @@ class UserController extends Controller
             [
                 'message' => 'Success!',
             ], 200);
+    }
+
+    public function reset_password(Request $request)
+    {
+        if ($request->user()->role !== 'admin') {
+            return response()->json([
+                'message' => 'Akses tidak diijinkan!',
+                'errors'  => ['Hanya admin yang dapat mereset password user lain!'],
+            ], 403);
+        }
+
+        $messages = [
+            'new_password.regex' => 'Password baru harus mengandung huruf besar, huruf kecil, simbol, dan angka!',
+        ];
+
+        $validator = Validator::make($request->all(), [
+            'user_id'          => 'required|integer',
+            'new_password'     => 'required|min:8|regex:/^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{6,}$/',
+            'confirm_password' => 'required|string|same:new_password',
+        ], $messages);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'message' => 'Data yang dimasukkan tidak valid!',
+                'errors'  => $validator->errors()->all(),
+            ], 422);
+        }
+
+        $user = User::find($request->user_id);
+
+        if (is_null($user)) {
+            return response()->json([
+                'message' => 'Data tidak ditemukan!',
+                'errors'  => ['User tidak ditemukan!'],
+            ], 404);
+        }
+
+        $user->password   = bcrypt($request->new_password);
+        $user->updated_at = \Carbon\Carbon::now();
+        $user->save();
+
+        return response()->json(['message' => 'Berhasil mereset Password user'], 200);
     }
 
     public function doctor(Request $request)

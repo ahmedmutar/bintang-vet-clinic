@@ -1,4 +1,11 @@
 
+.tabel-highlight {
+  background-color: #fff3cd !important;
+  outline: 2px solid #f0ad4e;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
 .item-outstock {
   background-color: red;
   color: #ffffff;
@@ -9,33 +16,220 @@
   color: #ffffff;
 }
 
-.rawat-inap .box-tools {
+.section-right-box-title-pet {
   display: flex;
 }
 
-.rawat-inap-datepicker {
-  width: 150px;
-}
-
-.rawat-inap-filtercabang {
-  width: 150px; margin-left: 10px
-}
-
-.section-right-box-title-pet{
-  display: flex;
-}
-
+/* ── Daftar Barang Pet Shop responsive ───────────────────────────────── */
 @media (max-width: 768px) {
-
-  .rawat-inap .box-tools {
+  .section-right-box-title-pet {
     display: block;
   }
 
-  .rawat-inap-datepicker {
-    width: unset;
+  .section-right-box-title-pet .select2-container {
+    width: 100% !important;
+    margin-top: 10px;
+  }
+}
+
+/* ── Pasien header layout ────────────────────────────────────────────── */
+.pasien-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pasien-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.pasien-tools .input-group {
+  width: auto;
+  margin-bottom: 0;
+}
+
+.pasien-range-group {
+  cursor: pointer;
+}
+
+.pasien-range-input {
+  min-width: 185px;
+  cursor: pointer;
+}
+
+/* ── Rawat Inap header layout ────────────────────────────────────────── */
+.rawat-inap-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.rawat-inap-tools {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.rawat-inap-tools .input-group {
+  width: auto;
+  margin-bottom: 0;
+}
+
+.rawat-inap-range-group {
+  cursor: pointer;
+}
+
+.rawat-inap-range-input {
+  min-width: 185px;
+  cursor: pointer;
+}
+
+/* ── Tidak Pengabaran header layout ─────────────────────────────────── */
+#tidakPengabaranChart {
+  min-height: 280px;
+}
+
+.tidak-pengabaran .table th {
+  background-color: #f7f7f7;
+  white-space: nowrap;
+}
+
+.tidak-pengabaran .table td {
+  vertical-align: middle;
+}
+
+.tidak-pengabaran-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tidak-pengabaran-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}
+
+.tidak-pengabaran-tools .tp-datepicker-wrap .input-group {
+  width: auto;
+  margin-bottom: 0;
+}
+
+.tidak-pengabaran-tools .tp-date-input {
+  width: 100px;
+}
+
+.tidak-pengabaran-tools .tp-range-input {
+  min-width: 185px;
+}
+
+.tidak-pengabaran-tools .select2-container {
+  min-width: 150px !important;
+}
+
+/* ── Tablet (≤991px) ─────────────────────────────────────────────────── */
+@media (max-width: 991px) {
+  .pasien-header,
+  .rawat-inap-header,
+  .tidak-pengabaran-header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .rawat-inap-filtercabang {
-    width: unset; margin-left: unset;
+  .pasien-tools,
+  .rawat-inap-tools {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .tidak-pengabaran-tools {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* ── Mobile (≤767px) ─────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  .pasien-tools,
+  .rawat-inap-tools {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .pasien-tools .btn-group,
+  .rawat-inap-tools .btn-group {
+    display: flex;
+    width: 100%;
+  }
+
+  .pasien-tools .btn-group .btn,
+  .rawat-inap-tools .btn-group .btn {
+    flex: 1;
+  }
+
+  #datepicker-single-wrapper,
+  #datepicker-range-wrapper,
+  #datepicker-single-wrapper .input-group,
+  #datepicker-range-wrapper .input-group {
+    width: 100%;
+  }
+
+  #datepicker-single-rawat-inap-wrapper,
+  #datepicker-range-rawat-inap-wrapper,
+  #datepicker-single-rawat-inap-wrapper .input-group,
+  #datepicker-range-rawat-inap-wrapper .input-group {
+    width: 100%;
+  }
+
+  .pasien-range-input,
+  .rawat-inap-range-input {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .tidak-pengabaran-tools {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .tidak-pengabaran-tools .btn-group {
+    display: flex;
+    width: 100%;
+  }
+
+  .tidak-pengabaran-tools .btn-group .btn {
+    flex: 1;
+  }
+
+  .tidak-pengabaran-tools .tp-datepicker-wrap,
+  .tidak-pengabaran-tools .tp-datepicker-wrap .input-group {
+    width: 100%;
+  }
+
+  .tidak-pengabaran-tools .tp-date-input,
+  .tidak-pengabaran-tools .tp-range-input {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .tidak-pengabaran-tools .select2-container {
+    width: 100% !important;
   }
 }
