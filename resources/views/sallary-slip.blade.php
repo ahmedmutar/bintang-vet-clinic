@@ -152,12 +152,6 @@
   </style>
 </head>
 <body>
-    <table style="width: 100%">
-        <tr>
-            <td style="width: 33%">
-                <label class="titlePetName">Astra Vet Clinic</label>
-            </td>
-            <td>
 
   {{-- ── Header ── --}}
   <div class="header-wrap">
