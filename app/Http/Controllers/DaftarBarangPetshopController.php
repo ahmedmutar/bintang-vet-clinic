@@ -385,7 +385,7 @@ class DaftarBarangPetshopController extends Controller
             $item = $item->where('loi.branch_id', '=', $request->branch_id);
         }
 
-        if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis') {
+        if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis' || $request->user()->role == 'paramedis') {
             $item = $item->where('loi.branch_id', '=', $request->user()->branch_id);
         }
 

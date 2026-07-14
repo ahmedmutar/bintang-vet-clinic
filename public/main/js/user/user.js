@@ -19,6 +19,9 @@ $(document).ready(function() {
 	let isValidSelectStatus = false;
 
 	let isBeErr = false;
+  let getIdReset = null;
+  let showResetNewPassword = false;
+  let showResetConfirmPassword = false;
 	let paramUrlSetup = {
 		orderby:'',
 		column: '',
@@ -276,6 +279,7 @@ $(document).ready(function() {
               + `<td>${v.created_at}</td>`
               + `<td>
                   <button type="button" class="btn btn-warning openFormEdit" value=${v.id}><i class="fa fa-pencil" aria-hidden="true"></i></button>
+                  <button type="button" class="btn btn-info openFormResetPassword" value=${v.id} data-username="${v.username}"><i class="fa fa-lock" aria-hidden="true"></i></button>
                   <button type="button" class="btn btn-danger openFormDelete" value=${v.id}><i class="fa fa-trash-o" aria-hidden="true"></i></button>
                 </td>`
               + `</tr>`;
@@ -314,6 +318,14 @@ $(document).ready(function() {
 					$('#modal-confirmation').modal('show');
 				});
 
+				$('.openFormResetPassword').click(function() {
+					getIdReset = $(this).val();
+					const username = $(this).data('username');
+					$('#resetPasswordUsername').text(username);
+					refreshResetPasswordForm();
+					$('#modal-reset-password').modal('show');
+				});
+
 			}, complete: function() { $('#loading-screen').hide(); },
 			error: function(err) {
 				if (err.status == 401) {
@@ -322,6 +334,83 @@ $(document).ready(function() {
 				}
 			}
 		});
+	}
+
+	$('#toggleResetNewPassword').click(function() {
+		showResetNewPassword = !showResetNewPassword;
+		$('#resetNewPassword').attr('type', showResetNewPassword ? 'text' : 'password');
+		$(this).toggleClass('glyphicon-eye-open glyphicon-eye-close');
+	});
+
+	$('#toggleResetConfirmPassword').click(function() {
+		showResetConfirmPassword = !showResetConfirmPassword;
+		$('#resetConfirmPassword').attr('type', showResetConfirmPassword ? 'text' : 'password');
+		$(this).toggleClass('glyphicon-eye-open glyphicon-eye-close');
+	});
+
+	$('#resetNewPassword, #resetConfirmPassword').keyup(function() { validationResetForm(); });
+
+	$('#btnSubmitResetPassword').click(function() {
+		$('#beErrReset').empty();
+
+		$.ajax({
+			url : $('.baseUrl').val() + '/api/user/reset-password',
+			type: 'PUT',
+			dataType: 'JSON',
+			headers: { 'Authorization': `Bearer ${token}` },
+			data: {
+				user_id:          getIdReset,
+				new_password:     $('#resetNewPassword').val(),
+				confirm_password: $('#resetConfirmPassword').val(),
+			},
+			beforeSend: function() { $('#loading-screen').show(); },
+			success: function() {
+				$('#modal-reset-password').modal('toggle');
+				$("#msg-box .modal-body").text('Berhasil mereset Password user');
+				$('#msg-box').modal('show');
+				refreshResetPasswordForm();
+			},
+			complete: function() { $('#loading-screen').hide(); },
+			error: function(err) {
+				if (err.status === 422) {
+					$('#beErrReset').empty();
+					$.each(err.responseJSON.errors, function(idx, v) {
+						if (idx > 0) $('#beErrReset').append($('<br>'));
+						$('#beErrReset').append($('<span>').text(v));
+					});
+				} else if (err.status == 401) {
+					localStorage.removeItem('vet-clinic');
+					location.href = $('.baseUrl').val() + '/masuk';
+				}
+			}
+		});
+	});
+
+	function refreshResetPasswordForm() {
+		$('#resetNewPassword').val(''); $('#resetConfirmPassword').val('');
+		$('#resetNewPasswordErr').text(''); $('#resetConfirmPasswordErr').text('');
+		$('#beErrReset').empty();
+		$('#btnSubmitResetPassword').attr('disabled', true);
+	}
+
+	function validationResetForm() {
+		let valid = true;
+
+		if (!$('#resetNewPassword').val()) {
+			$('#resetNewPasswordErr').text('Password baru harus di isi'); valid = false;
+		} else {
+			$('#resetNewPasswordErr').text('');
+		}
+
+		if (!$('#resetConfirmPassword').val()) {
+			$('#resetConfirmPasswordErr').text('Konfirmasi password harus di isi'); valid = false;
+		} else if ($('#resetConfirmPassword').val() !== $('#resetNewPassword').val()) {
+			$('#resetConfirmPasswordErr').text('Konfirmasi password tidak sama dengan password baru'); valid = false;
+		} else {
+			$('#resetConfirmPasswordErr').text('');
+		}
+
+		$('#btnSubmitResetPassword').attr('disabled', !valid);
 	}
 
 	function loadCabang() {

@@ -9,6 +9,8 @@ $(document).ready(function() {
 			namaCabang: '',
       alamatCabang: '',
       instruksiPembayaran: '',
+      latitudeCabang: '',
+      longitudeCabang: '',
 			titleModal: '',
 			stateModal: '',
 			msgContent: '',
@@ -22,6 +24,8 @@ $(document).ready(function() {
       touchedForm: false,
 			msgBeErr: '',
 			listCabang: [],
+      _map: null,
+      _marker: null,
 			columnStatus: {
 				branch_code: 'none',
 				branch_name: 'none',
@@ -49,6 +53,10 @@ $(document).ready(function() {
 				this.stateModal = 'add';
 				this.titleModal = 'Tambah Cabang';
 				this.refreshVariable();
+				$('#modal-cabang').one('shown.bs.modal', () => {
+					this.initMap();
+					this._map.invalidateSize();
+				});
 				$('#modal-cabang').modal('show');
 			},
 			openFormUpdate: function(item) {
@@ -56,11 +64,17 @@ $(document).ready(function() {
 				this.titleModal = 'Ubah Cabang';
 				this.refreshVariable();
 
-				this.idCabang   = item.id;
-				this.kodeCabang = item.branch_code;
-				this.namaCabang = item.branch_name;
-        this.alamatCabang = item.address;
+				this.idCabang            = item.id;
+				this.kodeCabang          = item.branch_code;
+				this.namaCabang          = item.branch_name;
+        this.alamatCabang        = item.address;
         this.instruksiPembayaran = item.payment_instruction;
+        this.latitudeCabang      = item.latitude  || '';
+        this.longitudeCabang     = item.longitude || '';
+				$('#modal-cabang').one('shown.bs.modal', () => {
+					this.initMap(item.latitude, item.longitude);
+					this._map.invalidateSize();
+				});
 				$('#modal-cabang').modal('show');
 			},
 			openFormDelete: function(item) {
@@ -68,6 +82,54 @@ $(document).ready(function() {
 				this.idCabang = item.id;
 				this.confirmContent = 'Menghapus cabang akan mempengaruhi keseluruhan data';
 				$('#modal-confirmation').modal('show');
+			},
+			initMap: function(lat, lng) {
+				const defaultLat = lat ? parseFloat(lat) : -6.2088;
+				const defaultLng = lng ? parseFloat(lng) : 106.8456;
+
+				if (this._map) { this._map.remove(); this._map = null; this._marker = null; }
+
+				this._map = L.map('map-cabang').setView([defaultLat, defaultLng], lat ? 15 : 12);
+				L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+					attribution: '© OpenStreetMap'
+				}).addTo(this._map);
+
+				if (lat && lng) {
+					this._marker = L.marker([defaultLat, defaultLng], { draggable: true }).addTo(this._map);
+					this._marker.on('dragend', (e) => {
+						const p = e.target.getLatLng();
+						this.latitudeCabang  = p.lat.toFixed(8);
+						this.longitudeCabang = p.lng.toFixed(8);
+					});
+				}
+
+				this._map.on('click', (e) => {
+					this.latitudeCabang  = e.latlng.lat.toFixed(8);
+					this.longitudeCabang = e.latlng.lng.toFixed(8);
+					this.setMapMarker(e.latlng.lat, e.latlng.lng);
+				});
+			},
+			setMapMarker: function(lat, lng) {
+				if (!this._map) return;
+				if (this._marker) {
+					this._marker.setLatLng([lat, lng]);
+				} else {
+					this._marker = L.marker([lat, lng], { draggable: true }).addTo(this._map);
+					this._marker.on('dragend', (e) => {
+						const p = e.target.getLatLng();
+						this.latitudeCabang  = p.lat.toFixed(8);
+						this.longitudeCabang = p.lng.toFixed(8);
+					});
+				}
+				this._map.setView([lat, lng], 15);
+			},
+			gunakanLokasiSaya: function() {
+				if (!navigator.geolocation) { alert('Geolocation tidak didukung browser ini.'); return; }
+				navigator.geolocation.getCurrentPosition(pos => {
+					this.latitudeCabang  = pos.coords.latitude;
+					this.longitudeCabang = pos.coords.longitude;
+					this.setMapMarker(pos.coords.latitude, pos.coords.longitude);
+				}, () => { alert('Gagal mendapatkan lokasi. Pastikan izin lokasi diaktifkan.'); });
 			},
 			kodeCabangKeyup: function(e) {
 				const regexp = /^[^a-z ]*$/;
@@ -126,6 +188,8 @@ $(document).ready(function() {
 					form_data.append('NamaCabang', this.namaCabang);
           form_data.append('Alamat', this.alamatCabang);
           form_data.append('InstruksiPembayaran', this.instruksiPembayaran);
+          if (this.latitudeCabang)  form_data.append('Latitude',  this.latitudeCabang);
+          if (this.longitudeCabang) form_data.append('Longitude', this.longitudeCabang);
 
 					this.processSave(form_data);
 				} else {
@@ -137,8 +201,14 @@ $(document).ready(function() {
 			submitConfirm: function() {
 
 				if (this.stateModal === 'edit') {
-					// form_data.append('KodeCabang', this.kodeCabang);
-          const request = {id: this.idCabang, NamaCabang: this.namaCabang, Alamat: this.alamatCabang, InstruksiPembayaran: this.instruksiPembayaran};
+          const request = {
+            id: this.idCabang,
+            NamaCabang: this.namaCabang,
+            Alamat: this.alamatCabang,
+            InstruksiPembayaran: this.instruksiPembayaran,
+            Latitude:  this.latitudeCabang  || null,
+            Longitude: this.longitudeCabang || null,
+          };
 					this.processEdit(request);
 				} else {
 					this.processDelete({ id: this.idCabang });
@@ -235,6 +305,7 @@ $(document).ready(function() {
 				this.namaCabangErr = false; this.touchedForm = false;
         this.alamatCabang = ''; this.alamatErr = false;
         this.instruksiPembayaran = ''; this.instruksiPembayaranErr = false;
+        this.latitudeCabang = ''; this.longitudeCabang = '';
 				this.beErr = false;
 			}
 		}

@@ -1,5 +1,6 @@
 .menuCabang, .menuUser, .menuPasien, .menuPendaftaran, .menuDokter, .menuPeriksa,
-.menuTindakan, .menuGudang, .menuPembayaran, .menuKeuangan, .menuKunjungan, .menuPenggajian, .menuPengeluaran {
+.menuTindakan, .menuGudang, .menuPembayaran, .menuKeuangan, .menuKunjungan, .menuPenggajian, .menuPengeluaran,
+.menuLayanan {
 	display: none;
 }
 

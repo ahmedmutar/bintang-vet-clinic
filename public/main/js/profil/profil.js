@@ -10,6 +10,10 @@ $(document).ready(function() {
   let isValidAlamat = false;
   let getFotoProfile = null;
 
+  let showOldPassword = false;
+  let showNewPassword = false;
+  let showConfirmPassword = false;
+
   loadProfil(); refreshVariable();
   $('.profile-username').text(fullname_profile);
   $('.profile-role').text(role_profile);
@@ -132,6 +136,100 @@ $(document).ready(function() {
       reader.readAsDataURL(file);
     }
   });
+
+  $('#toggleOldPassword').click(function() {
+    showOldPassword = !showOldPassword;
+    $('#oldPassword').attr('type', showOldPassword ? 'text' : 'password');
+    $(this).toggleClass('glyphicon-eye-open glyphicon-eye-close');
+  });
+
+  $('#toggleNewPassword').click(function() {
+    showNewPassword = !showNewPassword;
+    $('#newPassword').attr('type', showNewPassword ? 'text' : 'password');
+    $(this).toggleClass('glyphicon-eye-open glyphicon-eye-close');
+  });
+
+  $('#toggleConfirmPassword').click(function() {
+    showConfirmPassword = !showConfirmPassword;
+    $('#confirmPassword').attr('type', showConfirmPassword ? 'text' : 'password');
+    $(this).toggleClass('glyphicon-eye-open glyphicon-eye-close');
+  });
+
+  $('#oldPassword, #newPassword, #confirmPassword').keyup(function() { validationPasswordForm(); });
+
+  $('#btnGantiPassword').click(function() {
+    $('#beErrPassword').empty();
+
+    $.ajax({
+      url : $('.baseUrl').val() + '/api/user/change-password',
+      type: 'PUT',
+      dataType: 'JSON',
+      headers: { 'Authorization': `Bearer ${token}` },
+      data: {
+        old_password:     $('#oldPassword').val(),
+        new_password:     $('#newPassword').val(),
+        confirm_password: $('#confirmPassword').val(),
+      },
+      beforeSend: function() { $('#loading-screen').show(); },
+      success: function() {
+        $("#msg-box .modal-body").text('Berhasil mengubah Password. Anda akan diarahkan ke halaman login.');
+        $('#msg-box').modal('show');
+        refreshPasswordForm();
+        setTimeout(function() {
+          localStorage.removeItem('vet-clinic');
+          location.href = $('.baseUrl').val() + '/masuk';
+        }, 2000);
+      },
+      complete: function() { $('#loading-screen').hide(); },
+      error: function(err) {
+        if (err.status === 422) {
+          $('#beErrPassword').empty();
+          $.each(err.responseJSON.errors, function(idx, v) {
+            if (idx > 0) $('#beErrPassword').append($('<br>'));
+            $('#beErrPassword').append($('<span>').text(v));
+          });
+        } else if (err.status == 401) {
+          localStorage.removeItem('vet-clinic');
+          location.href = $('.baseUrl').val() + '/masuk';
+        }
+      }
+    });
+  });
+
+  function refreshPasswordForm() {
+    $('#oldPassword').val(''); $('#newPassword').val(''); $('#confirmPassword').val('');
+    $('#oldPasswordErr').text(''); $('#newPasswordErr').text(''); $('#confirmPasswordErr').text('');
+    $('#beErrPassword').empty();
+    $('#btnGantiPassword').attr('disabled', true);
+  }
+
+  function validationPasswordForm() {
+    let valid = true;
+
+    if (!$('#oldPassword').val()) {
+      $('#oldPasswordErr').text('Password lama harus di isi'); valid = false;
+    } else {
+      $('#oldPasswordErr').text('');
+    }
+
+    if (!$('#newPassword').val()) {
+      $('#newPasswordErr').text('Password baru harus di isi'); valid = false;
+    } else {
+      $('#newPasswordErr').text('');
+    }
+
+    if (!$('#confirmPassword').val()) {
+      $('#confirmPasswordErr').text('Konfirmasi password harus di isi'); valid = false;
+    } else if ($('#confirmPassword').val() !== $('#newPassword').val()) {
+      $('#confirmPasswordErr').text('Konfirmasi password tidak sama dengan password baru'); valid = false;
+    } else {
+      $('#confirmPasswordErr').text('');
+    }
+
+    $('#btnGantiPassword').attr('disabled', !valid);
+  }
+
+  refreshPasswordForm();
 
   function loadProfil() {
     $.ajax({

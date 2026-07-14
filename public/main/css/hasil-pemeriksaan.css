@@ -1,3 +1,26 @@
+/* Fix Select2 multiselect jasa & barang — tag wrap ke bawah, tidak scroll horizontal */
+#selectedJasa + .select2-container--default .select2-selection--multiple,
+.selectedBarang + .select2-container--default .select2-selection--multiple {
+  height: auto !important;
+  min-height: 36px;
+}
+
+#selectedJasa + .select2-container--default .select2-selection--multiple .select2-selection__rendered,
+.selectedBarang + .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 4px 4px 0;
+  white-space: normal;
+  overflow: visible;
+}
+
+#selectedJasa + .select2-container--default .select2-selection--multiple .select2-selection__choice,
+.selectedBarang + .select2-container--default .select2-selection--multiple .select2-selection__choice {
+  margin-bottom: 4px;
+  white-space: normal;
+  max-width: 100%;
+}
+
 .qty-input-barang, .qty-input-jasa {
   width: 100%;
   height: 34px;

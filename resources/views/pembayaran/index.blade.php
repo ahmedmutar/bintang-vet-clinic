@@ -38,12 +38,13 @@
                               <th class="onOrdering" data='pet_name' orderby="none">Nama Hewan <span class="fa fa-sort"></span></th>
                               <th class="onOrdering" data='complaint' orderby="none">Keluhan <span class="fa fa-sort"></span></th>
                               <th class="onOrdering" data='status_outpatient_inpatient' orderby="none">Perawatan <span class="fa fa-sort"></span></th>
+                              <th>Status</th>
                               <th class="onOrdering" data='created_by' orderby="none">Dibuat Oleh <span class="fa fa-sort"></span></th>
                               <th>Aksi</th>
                             </tr>
                           </thead>
                           <tbody id="list-pembayaran">
-                            <tr class="text-center"><td colspan="10">Tidak ada data.</td></tr>
+                            <tr class="text-center"><td colspan="11">Tidak ada data.</td></tr>
                           </tbody>
                         </table>
 

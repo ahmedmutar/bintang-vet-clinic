@@ -20,6 +20,10 @@ Route::group(['middleware' => ['api']], function () {
 
     Route::post('masuk', 'UserController@login');
 
+    Route::post('lupa-password/kirim-otp',    'ForgotPasswordController@sendOtp')->middleware('throttle:3,1');
+    Route::post('lupa-password/verifikasi-otp', 'ForgotPasswordController@verifyOtp')->middleware('throttle:5,1');
+    Route::post('lupa-password/reset',        'ForgotPasswordController@reset')->middleware('throttle:5,1');
+
     Route::group(['middleware' => ['jwt.auth']], function () {
 
         Route::post('keluar', 'UserController@logout');
@@ -42,6 +46,8 @@ Route::group(['middleware' => ['api']], function () {
         Route::post('user/upload-image', 'ProfileController@upload_photo_profile');
         Route::get('user/profile', 'ProfileController@get_data_user');
         Route::put('user/profile', 'ProfileController@update_data_user');
+        Route::put('user/change-password', 'ProfileController@change_password')->middleware('throttle:5,1');
+        Route::put('user/reset-password', 'UserController@reset_password')->middleware('throttle:10,1');
 
         //pasien
         Route::get('pasien', 'PasienController@index');
@@ -53,6 +59,7 @@ Route::group(['middleware' => ['api']], function () {
         Route::get('pasien/daftar-pemilik', 'PasienController@ListOwner');
 
         Route::get('pasien/dropdown', 'PasienController@dropdown');
+        Route::get('pasien/pet-categories', 'PasienController@petCategories');
 
         //kategori barang
         Route::get('kategori-barang', 'KategoriBarangController@index');
@@ -145,6 +152,7 @@ Route::group(['middleware' => ['api']], function () {
 
         //registrasi pasien
         Route::get('registrasi-pasien', 'RegistrasiController@index');
+        Route::get('list-keluhan', 'RegistrasiController@listKeluhan');
         Route::post('registrasi-pasien', 'RegistrasiController@create');
         Route::put('registrasi-pasien', 'RegistrasiController@update');
         Route::delete('registrasi-pasien', 'RegistrasiController@delete');
@@ -247,13 +255,16 @@ Route::group(['middleware' => ['api']], function () {
 
         Route::get('laporan-keuangan/rekap/listperiode', 'RekapController@listperiode');
         Route::get('laporan-keuangan/rekap/download', 'RekapController@export');
+        Route::get('laporan-keuangan/rekap/patient-summary', 'RekapController@patientSummary');
 
         Route::get('laporan-keuangan/rekap-all', 'RekapKeseluruhanController@index');
         Route::get('laporan-keuangan/rekap-all-chart', 'RekapKeseluruhanController@chart');
+        Route::get('laporan-keuangan/rekap-all/export', 'RekapKeseluruhanController@export');
 
         //dashboard
         Route::get('dashboard/barchart', 'DashboardController@BarChartPatient');
         Route::get('dashboard/barchart-inpatient', 'DashboardController@BarChartInPatient');
+        Route::get('dashboard/tidak-pengabaran', 'DashboardController@PasienTidakPengabaran');
 
         //penggajian
         Route::get('penggajian/gaji-user', 'PenggajianController@sallary_user');
@@ -270,6 +281,33 @@ Route::group(['middleware' => ['api']], function () {
         Route::post('pengeluaran', 'PengeluaranController@create');
         Route::put('pengeluaran', 'PengeluaranController@update');
         Route::delete('pengeluaran', 'PengeluaranController@delete');
+
+        //shift
+        Route::get('shift', 'ShiftController@index');
+        Route::get('shift/dropdown', 'ShiftController@dropdown');
+        Route::post('shift', 'ShiftController@create');
+        Route::put('shift', 'ShiftController@update');
+        Route::put('shift/toggle-status', 'ShiftController@toggleStatus');
+        Route::delete('shift', 'ShiftController@delete');
+
+        //absensi
+        Route::get('absensi/cek-hari-ini', 'AbsensiController@cekHariIni');
+        Route::post('absensi/masuk', 'AbsensiController@masuk');
+        Route::post('absensi/keluar', 'AbsensiController@keluar');
+        Route::get('absensi/export', 'AbsensiController@export');
+        Route::get('absensi', 'AbsensiController@index');
+
+        //absensi radius exception
+        Route::get('absensi-radius-exception', 'AbsensiRadiusExceptionController@index');
+        Route::post('absensi-radius-exception', 'AbsensiRadiusExceptionController@create');
+        Route::delete('absensi-radius-exception', 'AbsensiRadiusExceptionController@delete');
+
+        //pengabaran
+        Route::get('pengabaran/nomor-wa', 'PengabaranController@getNomorWa');
+        Route::put('pengabaran/nomor-wa', 'PengabaranController@saveNomorWa');
+        Route::get('pengabaran/template', 'PengabaranController@getTemplates');
+        Route::put('pengabaran/template', 'PengabaranController@saveTemplate');
+        Route::delete('pengabaran/template', 'PengabaranController@deleteTemplate');
     });
 });
 

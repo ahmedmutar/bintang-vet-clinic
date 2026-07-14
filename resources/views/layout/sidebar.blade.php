@@ -77,6 +77,33 @@
 			<li class="menuPembayaran"><a href="{{ url('/pembayaran') }}"><i class="fa fa-money" aria-hidden="true"></i> <span>Pembayaran</span></a></li>
       <li class="menuPenggajian"><a href="{{ url('/penggajian') }}"><i class="fa fa-dollar" aria-hidden="true"></i> <span>Penggajian</span></a></li>
 			<li class="menuPengeluaran"><a href="{{ url('/pengeluaran') }}"><i class="fa fa-dollar" aria-hidden="true"></i> <span>Pengeluaran</span></a></li>
+			<li class="treeview menuAbsensi">
+				<a>
+					<i class="fa fa-id-badge" aria-hidden="true"></i>
+					<span>Absensi</span>
+					<span class="pull-right-container">
+						<i class="fa fa-angle-left pull-right"></i>
+					</span>
+				</a>
+				<ul class="treeview-menu">
+					<li class="menuMasterShift"><a href="{{ url('/shift') }}"><i class="fa fa-circle-o"></i> Master Shift</a></li>
+					<li class="menuLaporanAbsensi"><a href="{{ url('/absensi') }}"><i class="fa fa-circle-o"></i> Laporan Absensi</a></li>
+					<li class="menuRadiusException" style="display:none;"><a href="{{ url('/absensi-radius-exception') }}"><i class="fa fa-circle-o"></i> Pengecualian Radius</a></li>
+				</ul>
+			</li>
+			<li class="treeview menuPengabaran" style="display:none;">
+				<a>
+					<i class="fa fa-whatsapp" aria-hidden="true"></i>
+					<span>Pengabaran</span>
+					<span class="pull-right-container">
+						<i class="fa fa-angle-left pull-right"></i>
+					</span>
+				</a>
+				<ul class="treeview-menu">
+					<li><a href="{{ url('/pengabaran/nomor-wa') }}"><i class="fa fa-circle-o"></i> Nomor WA Cabang</a></li>
+					<li><a href="{{ url('/pengabaran/template') }}"><i class="fa fa-circle-o"></i> Template Pesan</a></li>
+				</ul>
+			</li>
 			<li class="treeview menuKeuangan">
 				<a>
 					<i class="fa fa-file-text" aria-hidden="true"></i>

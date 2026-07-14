@@ -155,7 +155,7 @@ class DaftarBarangController extends Controller
             $item = $item->where('list_of_items.branch_id', '=', $request->branch_id);
         }
 
-        if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis') {
+        if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis' || $request->user()->role == 'paramedis') {
             $item = $item->where('list_of_items.branch_id', '=', $request->user()->branch_id);
         }
 
@@ -663,7 +663,7 @@ class DaftarBarangController extends Controller
         }
 
 
-        for ($i = 1; $i < count($result); $i++) {
+        for ($i = 0; $i < count($result); $i++) {
 
             $expiredDate = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($result[$i]['tanggal_kedaluwarsa_barang_ddmmyyyy']);
             $expiredDateFormatted = $expiredDate->format('Y-m-d');

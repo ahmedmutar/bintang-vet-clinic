@@ -1,5 +1,9 @@
 @extends('layout.master')
 
+@section('css-content')
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+@endsection
+
 @section('content')
 <div class="box box-info" id="cabang-app">
   <div class="box-header ">
@@ -97,6 +101,18 @@
                 <div class="validate-error" v-if="instruksiPembayaranErr">Instruksi Pembayaran minimal 5 karakter</div>
               </div>
               <div class="form-group">
+                <label>Koordinat Klinik <small class="text-muted">(untuk menghitung jarak saat absensi)</small></label>
+                <div style="display:flex; gap:8px; margin-bottom:6px;">
+                  <input type="number" step="any" class="form-control" v-model="latitudeCabang" placeholder="Latitude (contoh: -6.2088)" style="flex:1;">
+                  <input type="number" step="any" class="form-control" v-model="longitudeCabang" placeholder="Longitude (contoh: 106.8456)" style="flex:1;">
+                </div>
+                <button type="button" class="btn btn-default btn-xs" @click="gunakanLokasiSaya">
+                  <i class="fa fa-map-marker"></i> Gunakan Lokasi Saya
+                </button>
+                <span style="font-size:11px; color:#888; margin-left:8px;">atau klik/drag marker pada peta</span>
+                <div id="map-cabang" style="height:220px; margin-top:8px; border-radius:4px; border:1px solid #ccc;"></div>
+              </div>
+              <div class="form-group">
                 <div class="validate-error" v-if="beErr" v-html="msgBeErr"></div>
               </div>
             </div>
@@ -119,15 +135,7 @@
 @endsection
 
 @section('script-content')
-<script>
-  // $('#table-cabang').DataTable({
-  //   'paging'     : false,
-  //   'searching'  : false,
-  //   "info"       : false,
-  //   "columnDefs" : [{ "orderable": false, "targets": 3 }],
-  //   responsive: true
-  // });
-</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 @endsection
 
 @section('vue-content')

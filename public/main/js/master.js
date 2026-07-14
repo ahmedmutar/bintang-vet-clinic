@@ -49,10 +49,17 @@ $(document).ready(function() {
         $('.menuOmset').hide();
       } else if (role === 'dokter') {
         $('.menuOmset').hide();
+      } else if (role === 'paramedis') {
+        $('.menuOmset').hide();
       }
 
     } else {
       $('.menuOmset').hide();
+    }
+
+    // Halaman pengabaran hanya untuk admin — redirect jika bukan admin
+    if (window.location.pathname.startsWith('/pengabaran/') && role !== 'admin') {
+      location.href = $('.baseUrl').val() + '/unauthorized';
     }
 
     if (role === 'admin') {
@@ -63,6 +70,10 @@ $(document).ready(function() {
       $('.menuCabang').show();   $('.menuUser').show();
       $('.menuPeriksa').show();  $('.menuPenggajian').show();
       $('.menuPengeluaran').show(); $('.menuRekap').show();
+      $('.menuLayanan').show();
+      $('.menuAbsensi').show();
+      $('.menuMasterShift').show(); $('.menuLaporanAbsensi').show(); $('.menuRadiusException').show();
+      $('.menuPengabaran').show();
     } else if (role === 'resepsionis') {
       $('.menuPasien').show();   $('.menuPendaftaran').show();
       $('.menuTindakan').show(); $('.menuPembayaran').show();
@@ -70,6 +81,9 @@ $(document).ready(function() {
       $('.menuPenggajian').show(); $('.menuPeriksa').show();
       $('.menuPengeluaran').show(); $('.menuKeuangan').show();
       $('.menuRekap').hide();
+      $('.menuLayanan').show();
+      $('.menuAbsensi').show();
+      $('.menuMasterShift').hide(); $('.menuLaporanAbsensi').show();
     } else if (role === 'dokter') {
       $('.menuDokter').show();   $('.menuPasien').show();
       $('.menuTindakan').show(); $('.menuGudang').show();
@@ -77,7 +91,12 @@ $(document).ready(function() {
       $('.menuPendaftaran').show(); $('.menuKeuangan').show();
       $('.menuPembayaran').show(); $('.menuPenggajian').show();
       $('.menuPengeluaran').show(); $('.menuRekap').hide();
-
+      $('.menuLayanan').show();
+      $('.menuAbsensi').show();
+      $('.menuMasterShift').hide(); $('.menuLaporanAbsensi').show();
+    } else if (role === 'paramedis') {
+      $('.menuAbsensi').show();
+      $('.menuMasterShift').hide(); $('.menuLaporanAbsensi').show();
     }
   }
 
@@ -100,6 +119,10 @@ $(document).ready(function() {
         $('.menuDokter').addClass('active');
       } else if (pathName === '/laporan-keuangan-harian' || pathName === '/laporan-keuangan-mingguan' || pathName === '/laporan-keuangan-bulanan' || pathName === '/laporan-keuangan-rekap'|| pathName === '/laporan-keuangan-omset') {
         $('.menuKeuangan').addClass('active');
+      } else if (pathName === '/shift' || pathName === '/absensi' || pathName === '/absensi-radius-exception') {
+        $('.menuAbsensi').addClass('active');
+      } else if (pathName.startsWith('/pengabaran/')) {
+        $('.menuPengabaran').addClass('active');
       }
     } else {
       // additional custom url

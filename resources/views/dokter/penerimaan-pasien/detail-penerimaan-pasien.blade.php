@@ -33,8 +33,11 @@
               </tr>
               <tr>
                 <td class="detail-label">Usia Hewan</td>
-								<td id="usiaHewanTahunTxt" class="detail-value"></td>
-								<td id="usiaHewanBulanTxt" class="detail-value"></td>
+                <td class="detail-value">
+                  <span id="usiaHewanTahunTxt"></span>
+                  <span id="usiaHewanBulanTxt"></span>
+                  <span id="usiaHewanHariTxt"></span>
+                </td>
               </tr>
               <tr>
                 <td class="detail-label">Nama Pemilik</td>

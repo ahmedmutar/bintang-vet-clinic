@@ -41,8 +41,9 @@
         <div class="d-flex m-b-10px">
           <div class="label-detail-div">Usia Hewan</div>
           <div class="p-left-10px">
-            <span id="usiaHewanTahunTxt"></span>&nbsp;&nbsp;
+            <span id="usiaHewanTahunTxt"></span>
             <span id="usiaHewanBulanTxt"></span>
+            <span id="usiaHewanHariTxt"></span>
           </div>
         </div>
         <div class="d-flex m-b-10px">

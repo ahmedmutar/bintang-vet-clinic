@@ -1,57 +1,204 @@
+/*
+ * Rekap — Responsive Styles
+ * Breakpoints: Laptop ≥ 992px | Tablet 768–991px | Mobile ≤ 767px | Phone ≤ 480px
+ */
+
+/* ═══════════════════════════════════════════════════════
+   Toolbar / header area
+════════════════════════════════════════════════════════ */
+.inner-box-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+/* ── Left: periode buttons + date filters ────────────── */
+.section-left-box-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Period date filter containers ───────────────────── */
+.filter-periode-input {
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.omset-range-group {
+  width: 220px;
+  cursor: pointer;
+}
+
+.omset-range-input {
+  cursor: pointer;
+}
+
+.filter-sep {
+  white-space: nowrap;
+}
+
+.filter-bulanan-group {
+  width: 160px;
+}
+
+.filter-tahun-select {
+  width: 90px !important;
+}
+
+/* ── Right: download + cabang + periode ──────────────── */
+.section-right-box-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.section-right-box-title .btn-download-excel {
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: 0;
+}
+
+/* Select2 containers — desktop widths */
+.section-right-box-title .select2-container:nth-of-type(1) {
+  width: 170px !important;
+}
+.section-right-box-title .select2-container:nth-of-type(2) {
+  width: 160px !important;
+}
+
+/* ── Chart ───────────────────────────────────────────── */
+#rekapWidget,
+#rekapWidgetOmset {
+  width: 100%;
+  height: 350px;
+  min-height: 240px;
+}
+
+/* ── Table ───────────────────────────────────────────── */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .label-support-laporan {
   width: 10%;
 }
-.section-left-box-title {
-  display: flex;
-}
-.section-right-box-title {
-  width: 400px;
-}
-.section-right-box-title .btn-download-excel {
-  margin-right: 10px;
-}
 
-.section-right-box-title #filterCabang {
-  width: 70%;
-  margin-right: 20px;
-}
-
-.section-right-box-title #filterPeriode {
-  width: 50%;
-  margin-left: 20px;
-}
-
-.label-date {
-  align-self: center;
-  margin-right: 20px;
-}
 .section-daterangepicker {
   width: 223px;
 }
 
-@media (max-width: 768px) {
+/* ═══════════════════════════════════════════════════════
+   Tablet  768px – 991px
+════════════════════════════════════════════════════════ */
+@media (max-width: 991px) {
+  .inner-box-title {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .section-left-box-title {
+    width: 100%;
+  }
+
+  .section-right-box-title {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .section-right-box-title .btn-download-excel {
+    flex: 0 0 100%;
+  }
+
+  .section-right-box-title .select2-container {
+    flex: 1 1 0% !important;
+    width: auto !important;
+    min-width: 130px;
+  }
+
+  #rekapWidget,
+  #rekapWidgetOmset {
+    height: 300px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Mobile  ≤ 767px
+════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  .inner-box-title {
+    margin: 8px 0;
+  }
+
+  /* Filter inputs expand to full row when wrapping */
+  .filter-periode-input {
+    width: 100%;
+  }
+
+  .omset-range-group {
+    width: 100%;
+  }
+
+  .filter-bulanan-group {
+    width: 100%;
+  }
+
+  .filter-tahun-select {
+    width: 100% !important;
+  }
+
+  .section-right-box-title {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .section-right-box-title .btn-download-excel {
+    width: 100%;
+    text-align: center;
+  }
+
+  .section-right-box-title .select2-container {
+    width: 100% !important;
+    flex: unset !important;
+  }
+
+  .section-right-box-title .select2-selection {
+    width: 100% !important;
+  }
+
   .label-support-laporan {
     width: 40%;
   }
-  .section-right-box-title .select2-container {
-    margin-top: 0px;
+
+  #rekapWidget,
+  #rekapWidgetOmset {
+    height: 260px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
+   Small phone  ≤ 480px
+════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .omset-range-group {
+    width: 100%;
   }
 
-  .inner-box-title {
-    display: block;
+  #rekapWidget,
+  #rekapWidgetOmset {
+    height: 220px;
   }
-  .section-left-box-title {
-    margin-bottom: 10px;
-  }
-  .section-left-box-title .label-date {
-    width: 30%;
-    margin-right: unset;
-  }
-  .section-left-box-title .date {
-    width: 70%;
-  }
-  .section-right-box-title {
-    width: 100%;
-    display: flex;
+
+  .box-header h3.box-title {
+    font-size: 14px;
   }
 }

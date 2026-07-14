@@ -11,13 +11,6 @@ class CabangController extends Controller
 {
   public function index(Request $request)
   {
-    // if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis') {
-    //     return response()->json([
-    //         'message' => 'The user role was invalid.',
-    //         'errors' => ['Akses User tidak diizinkan!'],
-    //     ], 403);
-    // }
-
     $branch = DB::table('branches')
       ->join('users', 'branches.user_id', '=', 'users.id')
       ->select(
@@ -27,7 +20,9 @@ class CabangController extends Controller
         'payment_instruction',
         'users.fullname as created_by',
         DB::raw("DATE_FORMAT(branches.created_at, '%d %b %Y') as created_at"),
-        'branches.address'
+        'branches.address',
+        'branches.latitude',
+        'branches.longitude'
       )
       ->where('branches.isDeleted', '=', 0);
 
@@ -44,12 +39,10 @@ class CabangController extends Controller
     }
 
     if ($request->orderby) {
-
       $branch = $branch->orderBy($request->column, $request->orderby);
     }
 
     $branch = $branch->orderBy('id', 'desc');
-
     $branch = $branch->get();
 
     return response()->json($branch, 200);
@@ -57,7 +50,6 @@ class CabangController extends Controller
 
   public function create(Request $request)
   {
-
     if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis') {
       return response()->json([
         'message' => 'The user role was invalid.',
@@ -70,6 +62,8 @@ class CabangController extends Controller
       'NamaCabang' => 'required|string|max:50',
       'Alamat' => 'required|string|min:5',
       'InstruksiPembayaran' => 'required|string|min:5',
+      'Latitude' => 'nullable|numeric|between:-90,90',
+      'Longitude' => 'nullable|numeric|between:-180,180',
     ]);
 
     if ($validate->fails()) {
@@ -87,6 +81,8 @@ class CabangController extends Controller
       'address' => $request->Alamat,
       'payment_instruction' => $request->InstruksiPembayaran,
       'user_id' => $request->user()->id,
+      'latitude' => $request->Latitude,
+      'longitude' => $request->Longitude,
     ]);
 
     return response()->json([
@@ -96,7 +92,6 @@ class CabangController extends Controller
 
   public function update(Request $request)
   {
-
     if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis') {
       return response()->json([
         'message' => 'The user role was invalid.',
@@ -108,6 +103,8 @@ class CabangController extends Controller
       //'KodeCabang' => 'required|string|max:5', //|unique:branches,branch_code
       'NamaCabang' => 'required|string|max:50',
       'Alamat' => 'required|string|min:5',
+      'Latitude' => 'nullable|numeric|between:-90,90',
+      'Longitude' => 'nullable|numeric|between:-180,180',
     ]);
 
     if ($validate->fails()) {
@@ -131,6 +128,8 @@ class CabangController extends Controller
     $branch->branch_name = $request->NamaCabang;
     $branch->address = $request->Alamat;
     $branch->payment_instruction = $request->InstruksiPembayaran;
+    $branch->latitude = $request->Latitude;
+    $branch->longitude = $request->Longitude;
     $branch->user_update_id = $request->user()->id;
     $branch->updated_at = \Carbon\Carbon::now();
     $branch->save();
@@ -142,7 +141,6 @@ class CabangController extends Controller
 
   public function delete(Request $request)
   {
-
     if ($request->user()->role == 'dokter' || $request->user()->role == 'resepsionis') {
       return response()->json([
         'message' => 'The user role was invalid.',
@@ -163,8 +161,6 @@ class CabangController extends Controller
     $branch->deleted_by = $request->user()->fullname;
     $branch->deleted_at = \Carbon\Carbon::now();
     $branch->save();
-
-    //$branch->delete();
 
     return response()->json([
       'message' => 'Berhasil menghapus Cabang',
@@ -190,10 +186,6 @@ class CabangController extends Controller
     $stella = DB::connection('mysql_forth')->table('branches')
       ->select('id', 'branch_name', DB::raw("'mysql_forth' as connection"))
       ->where('isDeleted', '=', 0)->get();
-
-    // $stella = DB::connection('mysql_fifth')->table('branches')
-    //   ->select('id', 'branch_name',  DB::raw("'mysql_fifth' as connection"))
-    //   ->where('isDeleted', '=', 0)->get();
 
     $branches = $admin->merge($tj)->merge($hello)->merge($stella)->values();
 
