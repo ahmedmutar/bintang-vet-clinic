@@ -34,7 +34,7 @@ class RekapKeseluruhanController extends Controller
         }
 
         // Semua branch → global minimum dari semua koneksi
-        $conns   = ['mysql', 'mysql_second', 'mysql_third', 'mysql_forth'];
+        $conns   = ['mysql', 'mysql_second', 'mysql_third', 'mysql_forth','mysql_fifth'];
         $minDate = null;
 
         foreach ($conns as $conn) {
@@ -166,6 +166,7 @@ class RekapKeseluruhanController extends Controller
             'mysql_second' => 1,
             'mysql_third'  => null,
             'mysql_forth'  => null,
+            'mysql_fifth'  => null,
         ];
 
         $all = collect();

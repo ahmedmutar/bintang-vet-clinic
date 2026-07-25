@@ -187,7 +187,11 @@ class CabangController extends Controller
       ->select('id', 'branch_name', DB::raw("'mysql_forth' as connection"))
       ->where('isDeleted', '=', 0)->get();
 
-    $branches = $admin->merge($tj)->merge($hello)->merge($stella)->values();
+    $kuma = DB::connection('mysql_fifth')->table('branches')
+      ->select('id', 'branch_name', DB::raw("'mysql_fifth' as connection"))
+      ->where('isDeleted', '=', 0)->get();
+
+    $branches = $admin->merge($tj)->merge($hello)->merge($stella)->merge($kuma)->values();
 
     return response()->json($branches, 200);
   }
