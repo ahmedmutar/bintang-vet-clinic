@@ -191,6 +191,9 @@ Route::get('/mitra-vet', function () {
 });
 
 Route::get('/mitra-vet/nota/{id}', 'MitraVetController@notaOrder');
+Route::get('/mitra-vet/nota/{id}/download', 'MitraVetController@downloadNota');
+Route::get('/mitra-vet/orders/customer-pdf', 'MitraVetController@downloadCustomerRecapPdf');
+Route::get('/mitra-vet/orders/{orderId}/invoice-penagihan', 'MitraVetController@downloadInvoicePenagihan');
 
 Route::middleware(['jwt.print'])->group(function () {
     Route::get('pendaftaran/cetak/{id}', 'RegistrasiController@cetakRegistrasi');

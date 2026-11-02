@@ -10,6 +10,7 @@ use App\Models\MitraVetCustomer;
 use App\Models\MitraVetItem;
 use App\Models\MitraVetOrder;
 use App\Models\MitraVetOrderItem;
+use App\Models\MitraVetOrderPayment;
 use App\Models\MitraVetStockHistory;
 use Carbon\Carbon;
 use DB;
@@ -68,6 +69,9 @@ class MitraVetController extends Controller
                 'id',
                 'nama_barang',
                 'satuan',
+                DB::raw('TRIM(harga_modal)+0 as harga_modal'),
+                DB::raw('TRIM(harga_jual)+0 as harga_jual'),
+                DB::raw('TRIM(profit)+0 as profit'),
                 DB::raw('TRIM(harga_satuan)+0 as harga_satuan'),
                 'stok',
                 DB::raw('TRIM(harga_satuan)+0 * stok as nilai_aset'),
@@ -96,10 +100,30 @@ class MitraVetController extends Controller
             ->selectRaw('SUM(harga_satuan * stok) as total')
             ->value('total') ?? 0;
 
+        $now = Carbon::now();
+
+        // Hitung total profit bulan ini (cash basis: proporsional terhadap uang yang sudah terbayar)
+        $total_profit_bulan = DB::table('mitra_vet_order_items as oi')
+            ->join('mitra_vet_items as i', 'oi.item_id', '=', 'i.id')
+            ->join('mitra_vet_orders as o', 'oi.order_id', '=', 'o.id')
+            ->whereMonth('o.created_at', $now->month)
+            ->whereYear('o.created_at', $now->year)
+            ->selectRaw('SUM(oi.quantity * GREATEST(oi.harga_satuan - i.harga_modal, 0) * (o.grand_total - o.sisa_tagihan) / GREATEST(o.grand_total, 1)) as profit')
+            ->value('profit') ?? 0;
+
+        // Hitung total profit keseluruhan (cash basis: proporsional terhadap uang yang sudah terbayar)
+        $total_profit_keseluruhan = DB::table('mitra_vet_order_items as oi')
+            ->join('mitra_vet_items as i', 'oi.item_id', '=', 'i.id')
+            ->join('mitra_vet_orders as o', 'oi.order_id', '=', 'o.id')
+            ->selectRaw('SUM(oi.quantity * GREATEST(oi.harga_satuan - i.harga_modal, 0) * (o.grand_total - o.sisa_tagihan) / GREATEST(o.grand_total, 1)) as profit')
+            ->value('profit') ?? 0;
+
         return response()->json([
-            'total_paging'     => $total_paging,
-            'data'             => $items,
-            'total_nilai_aset' => $total_nilai_aset,
+            'total_paging'             => $total_paging,
+            'data'                     => $items,
+            'total_nilai_aset'         => $total_nilai_aset,
+            'total_profit_bulan'       => $total_profit_bulan,
+            'total_profit_keseluruhan' => $total_profit_keseluruhan,
         ], 200);
     }
 
@@ -115,7 +139,7 @@ class MitraVetController extends Controller
 
         $items = MitraVetItem::where('is_deleted', false)
             ->where('stok', '>', 0)
-            ->select('id', 'nama_barang', 'satuan', 'harga_satuan', 'stok')
+            ->select('id', 'nama_barang', 'satuan', 'harga_satuan', 'harga_jual', 'stok')
             ->orderBy('nama_barang')
             ->get();
 
@@ -134,10 +158,19 @@ class MitraVetController extends Controller
         }
 
         $validate = Validator::make($request->all(), [
-            'nama_barang'  => 'required|string|max:150',
-            'satuan'       => 'required|string|max:50',
-            'harga_satuan' => 'required|numeric|min:0',
-            'stok'         => 'required|integer|min:0',
+            'nama_barang' => 'required|string|max:150',
+            'satuan'      => 'required|string|max:50',
+            'harga_modal' => 'required|numeric|min:0',
+            'harga_jual'  => 'required|numeric|min:0',
+            'stok'        => 'required|integer|min:0',
+        ], [
+            'nama_barang.required' => 'Nama barang wajib diisi.',
+            'satuan.required'      => 'Satuan barang wajib diisi.',
+            'harga_modal.required' => 'Harga modal wajib diisi.',
+            'harga_modal.numeric'  => 'Harga modal harus berupa angka.',
+            'harga_jual.required'  => 'Harga jual wajib diisi.',
+            'harga_jual.numeric'   => 'Harga jual harus berupa angka.',
+            'stok.required'        => 'Stok wajib diisi.',
         ]);
 
         if ($validate->fails()) {
@@ -146,6 +179,18 @@ class MitraVetController extends Controller
                 'errors'  => $validate->errors()->all(),
             ], 422);
         }
+
+        $hargaModal = (float) $request->harga_modal;
+        $hargaJual  = (float) $request->harga_jual;
+
+        if ($hargaJual <= $hargaModal) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => ['Harga Jual harus lebih besar dari Harga Modal!'],
+            ], 422);
+        }
+
+        $profit = $hargaJual - $hargaModal;
 
         // Cek duplikasi nama barang
         $exists = MitraVetItem::whereRaw('LOWER(nama_barang) = ?', [strtolower(trim($request->nama_barang))])
@@ -162,7 +207,10 @@ class MitraVetController extends Controller
         $item = MitraVetItem::create([
             'nama_barang'  => trim($request->nama_barang),
             'satuan'       => trim($request->satuan),
-            'harga_satuan' => $request->harga_satuan,
+            'harga_modal'  => $hargaModal,
+            'harga_jual'   => $hargaJual,
+            'profit'       => $profit,
+            'harga_satuan' => $hargaJual,
             'stok'         => $request->stok,
             'created_by'   => $request->user()->id,
         ]);
@@ -193,10 +241,18 @@ class MitraVetController extends Controller
         }
 
         $validate = Validator::make($request->all(), [
-            'id'           => 'required|integer',
-            'nama_barang'  => 'required|string|max:150',
-            'satuan'       => 'required|string|max:50',
-            'harga_satuan' => 'required|numeric|min:0',
+            'id'          => 'required|integer',
+            'nama_barang' => 'required|string|max:150',
+            'satuan'      => 'required|string|max:50',
+            'harga_modal' => 'required|numeric|min:0',
+            'harga_jual'  => 'required|numeric|min:0',
+        ], [
+            'nama_barang.required' => 'Nama barang wajib diisi.',
+            'satuan.required'      => 'Satuan barang wajib diisi.',
+            'harga_modal.required' => 'Harga modal wajib diisi.',
+            'harga_modal.numeric'  => 'Harga modal harus berupa angka.',
+            'harga_jual.required'  => 'Harga jual wajib diisi.',
+            'harga_jual.numeric'   => 'Harga jual harus berupa angka.',
         ]);
 
         if ($validate->fails()) {
@@ -214,6 +270,18 @@ class MitraVetController extends Controller
             ], 404);
         }
 
+        $hargaModal = (float) $request->harga_modal;
+        $hargaJual  = (float) $request->harga_jual;
+
+        if ($hargaJual <= $hargaModal) {
+            return response()->json([
+                'message' => 'Data tidak valid.',
+                'errors'  => ['Harga Jual harus lebih besar dari Harga Modal!'],
+            ], 422);
+        }
+
+        $profit = $hargaJual - $hargaModal;
+
         // Cek duplikasi nama (kecuali dirinya sendiri)
         $exists = MitraVetItem::whereRaw('LOWER(nama_barang) = ?', [strtolower(trim($request->nama_barang))])
             ->where('is_deleted', false)
@@ -229,7 +297,10 @@ class MitraVetController extends Controller
 
         $item->nama_barang  = trim($request->nama_barang);
         $item->satuan       = trim($request->satuan);
-        $item->harga_satuan = $request->harga_satuan;
+        $item->harga_modal  = $hargaModal;
+        $item->harga_jual   = $hargaJual;
+        $item->profit       = $profit;
+        $item->harga_satuan = $hargaJual;
         $item->updated_by   = $request->user()->id;
         $item->save();
 
@@ -363,14 +434,14 @@ class MitraVetController extends Controller
             }
 
             // Validasi kolom wajib ada
-            $requiredColumns = ['nama_barang', 'satuan', 'harga_satuan', 'stok'];
+            $requiredColumns = ['nama_barang', 'satuan', 'harga_modal', 'harga_jual', 'stok'];
             $firstRow        = array_keys($data[0] ?? []);
             $missingCols     = array_diff($requiredColumns, $firstRow);
 
             if (!empty($missingCols)) {
                 return response()->json([
                     'message' => 'Format file tidak sesuai.',
-                    'errors'  => ['Kolom berikut tidak ditemukan: ' . implode(', ', $missingCols)],
+                    'errors'  => ['Kolom berikut tidak ditemukan pada template Excel: ' . implode(', ', $missingCols) . '. Silakan download dan gunakan template Excel terbaru.'],
                 ], 422);
             }
 
@@ -385,10 +456,26 @@ class MitraVetController extends Controller
                 if (empty(trim($row['satuan'] ?? ''))) {
                     $validationErrors[] = "Baris {$rowNumber}: satuan wajib diisi.";
                 }
-                if (!is_numeric($row['harga_satuan'] ?? '') || $row['harga_satuan'] < 0) {
-                    $validationErrors[] = "Baris {$rowNumber}: harga_satuan harus berupa angka >= 0.";
+                
+                $hasModal = isset($row['harga_modal']) && is_numeric($row['harga_modal']) && $row['harga_modal'] >= 0;
+                $hasJual  = isset($row['harga_jual']) && is_numeric($row['harga_jual']) && $row['harga_jual'] >= 0;
+
+                if (!$hasModal) {
+                    $validationErrors[] = "Baris {$rowNumber}: harga_modal harus berupa angka >= 0.";
                 }
-                if (!is_numeric($row['stok'] ?? '') || (int) $row['stok'] < 0) {
+                if (!$hasJual) {
+                    $validationErrors[] = "Baris {$rowNumber}: harga_jual harus berupa angka >= 0.";
+                }
+
+                if ($hasModal && $hasJual) {
+                    $modalVal = (float) $row['harga_modal'];
+                    $jualVal  = (float) $row['harga_jual'];
+                    if ($jualVal <= $modalVal) {
+                        $validationErrors[] = "Baris {$rowNumber}: Harga Jual (Rp " . number_format($jualVal, 0, ',', '.') . ") harus lebih besar dari Harga Modal (Rp " . number_format($modalVal, 0, ',', '.') . ").";
+                    }
+                }
+
+                if (!isset($row['stok']) || !is_numeric($row['stok']) || (int) $row['stok'] < 0) {
                     $validationErrors[] = "Baris {$rowNumber}: stok harus berupa angka bulat >= 0.";
                 }
             }
@@ -411,7 +498,9 @@ class MitraVetController extends Controller
                 foreach ($data as $row) {
                     $namaBarangClean = trim(preg_replace('/\s+/', ' ', $row['nama_barang']));
                     $qtyTambah       = (int) $row['stok'];
-                    $hargaSatuan     = (float) str_replace(',', '', $row['harga_satuan']);
+                    $hargaModal      = (float) str_replace(',', '', $row['harga_modal']);
+                    $hargaJual       = (float) str_replace(',', '', $row['harga_jual']);
+                    $profit          = $hargaJual - $hargaModal;
                     $satuan          = trim($row['satuan']);
 
                     // Cek apakah barang sudah ada di tabel (case-insensitive)
@@ -420,13 +509,14 @@ class MitraVetController extends Controller
                         ->first();
 
                     if ($existing) {
-                        // JIKA SUDAH ADA: TAMBAH STOK KE BARANG TERSEBUT
+                        // JIKA SUDAH ADA: TAMBAH STOK KE BARANG TERSEBUT & UPDATE HARGA
                         $stokSebelumnya       = $existing->stok;
                         $existing->stok      += $qtyTambah;
                         $existing->satuan     = $satuan ?: $existing->satuan;
-                        if ($hargaSatuan > 0) {
-                            $existing->harga_satuan = $hargaSatuan;
-                        }
+                        $existing->harga_modal = $hargaModal;
+                        $existing->harga_jual  = $hargaJual;
+                        $existing->profit      = $profit;
+                        $existing->harga_satuan = $hargaJual;
                         $existing->updated_by = $request->user()->id;
                         $existing->save();
 
@@ -446,7 +536,10 @@ class MitraVetController extends Controller
                         $item = MitraVetItem::create([
                             'nama_barang'  => $namaBarangClean,
                             'satuan'       => $satuan,
-                            'harga_satuan' => $hargaSatuan,
+                            'harga_modal'  => $hargaModal,
+                            'harga_jual'   => $hargaJual,
+                            'profit'       => $profit,
+                            'harga_satuan' => $hargaJual,
                             'stok'         => $qtyTambah,
                             'created_by'   => $request->user()->id,
                         ]);
@@ -525,6 +618,13 @@ class MitraVetController extends Controller
                 DB::raw('TRIM(o.biaya_ongkir)+0 as biaya_ongkir'),
                 DB::raw('TRIM(o.total_harga)+0 as total_harga'),
                 DB::raw('TRIM(o.grand_total)+0 as grand_total'),
+                'o.tipe_pembayaran',
+                'o.status_pembayaran',
+                'o.jumlah_termin',
+                DB::raw('TRIM(o.uang_muka)+0 as uang_muka'),
+                DB::raw('TRIM(o.total_terbayar)+0 as total_terbayar'),
+                DB::raw('TRIM(o.sisa_tagihan)+0 as sisa_tagihan'),
+                'o.tanggal_jatuh_tempo',
                 'o.catatan',
                 'u.fullname as created_by',
                 DB::raw("DATE_FORMAT(o.created_at, '%d %b %Y %H:%i') as created_at")
@@ -589,7 +689,7 @@ class MitraVetController extends Controller
      */
     public function createOrder(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'], 'Hanya Admin, Dokter, dan Resepsionis yang dapat membuat orderan.')) {
+        if ($deny = $this->validateRoleAccess($request, ['admin'], 'Hanya Admin yang dapat membuat orderan (mengurangi stok barang).')) {
             return $deny;
         }
 
@@ -674,18 +774,56 @@ class MitraVetController extends Controller
                 }
             }
 
+            $tipePembayaran = $request->tipe_pembayaran ?: 'lunas';
+            $jumlahTermin   = max((int) ($request->jumlah_termin ?: 1), 1);
+            $uangMuka       = (float) ($request->uang_muka ?: 0);
+            $jatuhTempo     = $request->tanggal_jatuh_tempo ?: null;
+
+            if ($tipePembayaran === 'cicilan') {
+                $totalTerbayar = $uangMuka;
+                $sisaTagihan   = max($grandTotal - $uangMuka, 0);
+                $statusBayar   = $sisaTagihan <= 0 ? 'lunas' : 'cicilan';
+            } else {
+                $totalTerbayar = $grandTotal;
+                $sisaTagihan   = 0;
+                $statusBayar   = 'lunas';
+                $jumlahTermin  = 1;
+                $uangMuka      = $grandTotal;
+            }
+
             $order = MitraVetOrder::create([
-                'nomor_order'  => $nomorOrder,
-                'customer_id'  => $customerId,
-                'nama_pembeli' => $request->nama_pembeli,
-                'alamat'       => $request->alamat,
-                'no_hp'        => $request->no_hp,
-                'biaya_ongkir' => $request->biaya_ongkir,
-                'total_harga'  => $totalHarga,
-                'grand_total'  => $grandTotal,
-                'catatan'      => $request->catatan,
-                'created_by'   => $request->user()->id,
+                'nomor_order'         => $nomorOrder,
+                'customer_id'         => $customerId,
+                'nama_pembeli'        => $request->nama_pembeli,
+                'alamat'              => $request->alamat,
+                'no_hp'               => $request->no_hp,
+                'biaya_ongkir'        => $request->biaya_ongkir,
+                'total_harga'         => $totalHarga,
+                'grand_total'         => $grandTotal,
+                'tipe_pembayaran'     => $tipePembayaran,
+                'status_pembayaran'   => $statusBayar,
+                'jumlah_termin'       => $jumlahTermin,
+                'uang_muka'           => $uangMuka,
+                'total_terbayar'      => $totalTerbayar,
+                'sisa_tagihan'        => $sisaTagihan,
+                'tanggal_jatuh_tempo' => $jatuhTempo,
+                'catatan'             => $request->catatan,
+                'created_by'          => $request->user()->id,
             ]);
+
+            // Jika ada uang muka DP pada cicilan, catat di payment
+            if ($tipePembayaran === 'cicilan' && $uangMuka > 0) {
+                MitraVetOrderPayment::create([
+                    'order_id'          => $order->id,
+                    'nomor_pembayaran'  => 'DP-' . $nomorOrder,
+                    'cicilan_ke'        => 0, // 0 = DP
+                    'jumlah_bayar'      => $uangMuka,
+                    'tanggal_bayar'     => Carbon::now()->toDateString(),
+                    'metode_pembayaran' => 'transfer',
+                    'catatan'           => 'Uang Muka (DP) saat order dibuat',
+                    'created_by'        => $request->user()->id,
+                ]);
+            }
 
             foreach ($orderItems as $oi) {
                 MitraVetOrderItem::create([
@@ -780,18 +918,371 @@ class MitraVetController extends Controller
     }
 
     /**
+     * GET /api/mitra-vet/piutang
+     * Daftar piutang / cicilan orderan dengan filter status, customer, dan keyword
+     */
+    public function getPiutang(Request $request)
+    {
+        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+            return $deny;
+        }
+
+        $items_per_page = 50;
+        $page           = $request->page ?? 1;
+        $status         = $request->status; // belum_lunas / jatuh_tempo / lunas
+        $customerId     = $request->customer_id;
+        $keyword        = $request->keyword;
+        $today          = Carbon::now()->toDateString();
+
+        $query = DB::table('mitra_vet_orders as o')
+            ->leftJoin('mitra_vet_customers as c', 'o.customer_id', '=', 'c.id')
+            ->leftJoin('users as u', 'o.created_by', '=', 'u.id')
+            ->select(
+                'o.id',
+                'o.nomor_order',
+                'o.customer_id',
+                'o.nama_pembeli',
+                'o.no_hp',
+                'o.alamat',
+                DB::raw('TRIM(o.grand_total)+0 as grand_total'),
+                DB::raw('TRIM(o.uang_muka)+0 as uang_muka'),
+                DB::raw('TRIM(o.total_terbayar)+0 as total_terbayar'),
+                DB::raw('TRIM(o.sisa_tagihan)+0 as sisa_tagihan'),
+                'o.tipe_pembayaran',
+                'o.status_pembayaran',
+                'o.jumlah_termin',
+                'o.tanggal_jatuh_tempo',
+                'u.fullname as created_by',
+                DB::raw("DATE_FORMAT(o.created_at, '%d %b %Y') as tgl_order"),
+                DB::raw("DATE_FORMAT(o.tanggal_jatuh_tempo, '%d %b %Y') as tgl_tempo")
+            );
+
+        if ($status === 'belum_lunas') {
+            $query->where('o.sisa_tagihan', '>', 0);
+        } elseif ($status === 'jatuh_tempo') {
+            $query->where('o.sisa_tagihan', '>', 0)
+                  ->whereNotNull('o.tanggal_jatuh_tempo')
+                  ->where('o.tanggal_jatuh_tempo', '<', $today);
+        } elseif ($status === 'lunas') {
+            $query->where('o.sisa_tagihan', '<=', 0);
+        }
+
+        if ($customerId) {
+            $query->where('o.customer_id', $customerId);
+        }
+
+        if ($keyword) {
+            $query->where(function ($q) use ($keyword) {
+                $q->where('o.nomor_order', 'like', "%{$keyword}%")
+                  ->orWhere('o.nama_pembeli', 'like', "%{$keyword}%")
+                  ->orWhere('o.no_hp', 'like', "%{$keyword}%");
+            });
+        }
+
+        // Summary cards
+        $totalSisaPiutang = DB::table('mitra_vet_orders')
+            ->where('sisa_tagihan', '>', 0)
+            ->sum('sisa_tagihan');
+
+        $totalJatuhTempo = DB::table('mitra_vet_orders')
+            ->where('sisa_tagihan', '>', 0)
+            ->whereNotNull('tanggal_jatuh_tempo')
+            ->where('tanggal_jatuh_tempo', '<', $today)
+            ->sum('sisa_tagihan');
+
+        $totalTertagih = DB::table('mitra_vet_order_payments')->sum('jumlah_bayar');
+
+        $count_data   = $query->count();
+        $offset       = ($page - 1) * $items_per_page;
+        $total_paging = ceil($count_data / $items_per_page);
+
+        $orders = $query->orderBy('o.sisa_tagihan', 'desc')
+                        ->orderBy('o.created_at', 'desc')
+                        ->offset($offset)
+                        ->limit($items_per_page)
+                        ->get();
+
+        // Hitung cicilan ke-X untuk tiap order
+        foreach ($orders as $ord) {
+            $paymentsCount = DB::table('mitra_vet_order_payments')
+                ->where('order_id', $ord->id)
+                ->where('cicilan_ke', '>', 0)
+                ->count();
+            $ord->total_cicilan_masuk = $paymentsCount;
+
+            // Hitung status jatuh tempo dinamis
+            if ($ord->sisa_tagihan > 0 && $ord->tanggal_jatuh_tempo && $ord->tanggal_jatuh_tempo < $today) {
+                $ord->is_jatuh_tempo = true;
+            } else {
+                $ord->is_jatuh_tempo = false;
+            }
+        }
+
+        return response()->json([
+            'total_paging' => $total_paging,
+            'data'         => $orders,
+            'summary'      => [
+                'total_sisa_piutang' => $totalSisaPiutang,
+                'total_jatuh_tempo'  => $totalJatuhTempo,
+                'total_tertagih'     => $totalTertagih,
+            ]
+        ], 200);
+    }
+
+    /**
+     * POST /api/mitra-vet/piutang/bayar
+     * Catat pembayaran cicilan baru untuk order tertentu
+     */
+    public function bayarCicilan(Request $request)
+    {
+        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+            return $deny;
+        }
+
+        $validate = Validator::make($request->all(), [
+            'order_id'          => 'required|integer',
+            'jumlah_bayar'      => 'required|numeric|min:1',
+            'tanggal_bayar'     => 'required|date',
+            'metode_pembayaran' => 'required|string',
+        ], [
+            'jumlah_bayar.required' => 'Nominal pembayaran wajib diisi.',
+            'jumlah_bayar.min'      => 'Nominal pembayaran minimal Rp 1.',
+            'tanggal_bayar.required' => 'Tanggal pembayaran wajib diisi.',
+        ]);
+
+        if ($validate->fails()) {
+            return response()->json([
+                'message' => 'Data pembayaran tidak valid.',
+                'errors'  => $validate->errors()->all(),
+            ], 422);
+        }
+
+        $order = MitraVetOrder::find($request->order_id);
+        if (!$order) {
+            return response()->json(['message' => 'Orderan tidak ditemukan.'], 404);
+        }
+
+        if ($order->sisa_tagihan <= 0) {
+            return response()->json(['message' => 'Orderan ini sudah lunas sepenuhnya.'], 422);
+        }
+
+        $jumlahBayar = (float) $request->jumlah_bayar;
+        if ($jumlahBayar > $order->sisa_tagihan) {
+            $jumlahBayar = (float) $order->sisa_tagihan;
+        }
+
+        DB::beginTransaction();
+        try {
+            $nextCicilanKe = $order->payments()->where('cicilan_ke', '>', 0)->count() + 1;
+            $nomorPembayaran = 'PAY-' . date('Ymd') . '-' . str_pad($order->id, 4, '0', STR_PAD_LEFT) . '-' . $nextCicilanKe;
+
+            MitraVetOrderPayment::create([
+                'order_id'          => $order->id,
+                'nomor_pembayaran'  => $nomorPembayaran,
+                'cicilan_ke'        => $nextCicilanKe,
+                'jumlah_bayar'      => $jumlahBayar,
+                'tanggal_bayar'     => $request->tanggal_bayar,
+                'metode_pembayaran' => $request->metode_pembayaran,
+                'catatan'           => $request->catatan,
+                'created_by'        => $request->user()->id,
+            ]);
+
+            $order->total_terbayar += $jumlahBayar;
+            $order->sisa_tagihan    = max($order->grand_total - $order->total_terbayar, 0);
+
+            if ($order->sisa_tagihan <= 0) {
+                $order->status_pembayaran = 'lunas';
+            } else {
+                $order->status_pembayaran = 'cicilan';
+            }
+            $order->save();
+
+            DB::commit();
+
+            return response()->json([
+                'message'      => "Pembayaran cicilan ke-{$nextCicilanKe} sebesar Rp " . number_format($jumlahBayar, 0, ',', '.') . " berhasil dicatat!",
+                'status'       => $order->status_pembayaran,
+                'sisa_tagihan' => $order->sisa_tagihan,
+            ], 200);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Gagal mencatat pembayaran.',
+                'errors'  => [$e->getMessage()],
+            ], 500);
+        }
+    }
+
+    /**
+     * GET /api/mitra-vet/piutang/{orderId}/riwayat
+     * Ambil riwayat pembayaran cicilan untuk satu order
+     */
+    public function getRiwayatCicilan($orderId)
+    {
+        $order = MitraVetOrder::with(['customer', 'payments.creator'])->find($orderId);
+        if (!$order) {
+            return response()->json(['message' => 'Orderan tidak ditemukan.'], 404);
+        }
+
+        return response()->json([
+            'order'    => $order,
+            'payments' => $order->payments,
+        ], 200);
+    }
+
+    /**
+     * GET /mitra-vet/orders/{orderId}/invoice-penagihan
+     * Download Invoice / Surat Penagihan Pembayaran dalam format PDF
+     */
+    public function downloadInvoicePenagihan($orderId)
+    {
+        $order = MitraVetOrder::with(['items.item', 'creator', 'payments'])->find($orderId);
+        if (!$order) {
+            abort(404, 'Orderan tidak ditemukan.');
+        }
+
+        $filename = 'Invoice-Penagihan-' . str_replace(['/', '\\', ' '], '-', $order->nomor_order) . '.pdf';
+
+        $pdf = \PDF::loadView('mitra-vet.invoice-penagihan-pdf', compact('order'));
+        return $pdf->download($filename);
+    }
+
+    /**
      * GET /mitra-vet/nota/{id}
      * Tampilkan nota order (HTML printable / downloadable)
      */
     public function notaOrder($id)
     {
-        $order = MitraVetOrder::with(['items.item'])->find($id);
+        $order = MitraVetOrder::with(['items.item', 'creator'])->find($id);
 
         if (!$order) {
             abort(404, 'Order tidak ditemukan.');
         }
 
         return view('mitra-vet.nota', compact('order'));
+    }
+
+    /**
+     * GET /mitra-vet/nota/{id}/download
+     * Download nota order langsung dalam format PDF
+     */
+    public function downloadNota($id)
+    {
+        $order = MitraVetOrder::with(['items.item', 'creator'])->find($id);
+
+        if (!$order) {
+            abort(404, 'Order tidak ditemukan.');
+        }
+
+        $filename = 'Nota-' . str_replace(['/', '\\', ' '], '-', $order->nomor_order) . '.pdf';
+
+        $pdf = \PDF::loadView('mitra-vet.nota-pdf', compact('order'));
+        return $pdf->download($filename);
+    }
+
+    /**
+     * GET /api/mitra-vet/orders/customer-pdf (atau /mitra-vet/orders/customer-pdf)
+     * Download struk / rekap PDF riwayat order per pelanggan
+     * Filter: customer_id (wajib), year (wajib), month (opsional, jika kosong = 1 tahun penuh)
+     * Data diurutkan berdasarkan tanggal order ASC
+     */
+    public function downloadCustomerRecapPdf(Request $request)
+    {
+        $customerId = $request->customer_id;
+        $year       = $request->year ?: Carbon::now()->year;
+        $month      = $request->month;
+
+        if (!$customerId) {
+            return response()->json([
+                'message' => 'Silakan pilih pelanggan/mitra terlebih dahulu.'
+            ], 422);
+        }
+
+        $customer = MitraVetCustomer::find($customerId);
+        if (!$customer) {
+            // Coba cari nama pembeli dari order pertama dengan customer_id tsb
+            $sampleOrder = MitraVetOrder::where('customer_id', $customerId)->first();
+            if ($sampleOrder) {
+                $customer = (object) [
+                    'id'     => $customerId,
+                    'nama'   => $sampleOrder->nama_pembeli,
+                    'no_hp'  => $sampleOrder->no_hp,
+                    'alamat' => $sampleOrder->alamat,
+                ];
+            } else {
+                return response()->json([
+                    'message' => 'Data pelanggan/mitra tidak ditemukan.'
+                ], 404);
+            }
+        }
+
+        // Query orders milik pelanggan pada periode tersebut, diurutkan tanggal ASC
+        $query = MitraVetOrder::with(['items.item', 'creator'])
+            ->where(function ($q) use ($customer, $customerId) {
+                $q->where('customer_id', $customerId);
+                if (!empty($customer->nama)) {
+                    $q->orWhereRaw('LOWER(nama_pembeli) = ?', [strtolower(trim($customer->nama))]);
+                }
+            })
+            ->whereYear('created_at', $year);
+
+        if (!empty($month)) {
+            $query->whereMonth('created_at', $month);
+        }
+
+        $orders = $query->orderBy('created_at', 'asc')->get();
+
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'message' => 'Tidak ada transaksi order untuk pelanggan ini pada periode yang dipilih.'
+            ], 404);
+        }
+
+        // Label periode
+        $namaBulan = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+
+        if (!empty($month) && isset($namaBulan[(int)$month])) {
+            $periodeText = $namaBulan[(int)$month] . ' ' . $year;
+            $filePeriode = $namaBulan[(int)$month] . '-' . $year;
+        } else {
+            $periodeText = 'Tahun ' . $year . ' (Semua Bulan)';
+            $filePeriode = 'Tahun-' . $year;
+        }
+
+        $totalOrders = $orders->count();
+        $totalQty    = 0;
+        $totalProduk = 0;
+        $totalOngkir = 0;
+        $grandTotal  = 0;
+
+        foreach ($orders as $ord) {
+            $totalProduk += (float) $ord->total_harga;
+            $totalOngkir += (float) $ord->biaya_ongkir;
+            $grandTotal  += (float) $ord->grand_total;
+            foreach ($ord->items as $it) {
+                $totalQty += (int) $it->quantity;
+            }
+        }
+
+        $summary = (object) [
+            'total_orders' => $totalOrders,
+            'total_qty'    => $totalQty,
+            'total_produk' => $totalProduk,
+            'total_ongkir' => $totalOngkir,
+            'grand_total'  => $grandTotal,
+            'periode'      => $periodeText,
+        ];
+
+        $cleanCustomerName = preg_replace('/[^a-zA-Z0-9_-]/', '_', $customer->nama);
+        $filename = "Struk-Rekap-{$cleanCustomerName}-{$filePeriode}.pdf";
+
+        $pdf = \PDF::loadView('mitra-vet.rekap-order-customer-pdf', compact('customer', 'orders', 'summary'));
+        return $pdf->download($filename);
     }
 
     // =========================================================
@@ -841,12 +1332,30 @@ class MitraVetController extends Controller
             ->orderBy('hari')
             ->get();
 
-        // Summary total bulan ini
+        // Hitung total profit untuk bulan & tahun terpilih (cash basis: proporsional uang terbayar)
+        $profit_bulan = DB::table('mitra_vet_order_items as oi')
+            ->join('mitra_vet_items as i', 'oi.item_id', '=', 'i.id')
+            ->join('mitra_vet_orders as o', 'oi.order_id', '=', 'o.id')
+            ->whereMonth('o.created_at', $month)
+            ->whereYear('o.created_at', $year)
+            ->selectRaw('SUM(oi.quantity * GREATEST(oi.harga_satuan - i.harga_modal, 0) * (o.grand_total - o.sisa_tagihan) / GREATEST(o.grand_total, 1)) as profit')
+            ->value('profit') ?? 0;
+
+        // Hitung total profit keseluruhan (cash basis: proporsional uang terbayar)
+        $profit_keseluruhan = DB::table('mitra_vet_order_items as oi')
+            ->join('mitra_vet_items as i', 'oi.item_id', '=', 'i.id')
+            ->join('mitra_vet_orders as o', 'oi.order_id', '=', 'o.id')
+            ->selectRaw('SUM(oi.quantity * GREATEST(oi.harga_satuan - i.harga_modal, 0) * (o.grand_total - o.sisa_tagihan) / GREATEST(o.grand_total, 1)) as profit')
+            ->value('profit') ?? 0;
+
+        // Summary total bulan ini & profit
         $summary = [
-            'total_masuk_qty'   => $masuk->sum('total_qty'),
-            'total_masuk_nilai' => $masuk->sum('total_nilai'),
-            'total_keluar_qty'  => $keluar->sum('total_qty'),
-            'total_keluar_nilai' => $keluar->sum('total_nilai'),
+            'total_masuk_qty'          => $masuk->sum('total_qty'),
+            'total_masuk_nilai'        => $masuk->sum('total_nilai'),
+            'total_keluar_qty'         => $keluar->sum('total_qty'),
+            'total_keluar_nilai'       => $keluar->sum('total_nilai'),
+            'total_profit_bulan'       => $profit_bulan,
+            'total_profit_keseluruhan' => $profit_keseluruhan,
         ];
 
         return response()->json([

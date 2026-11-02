@@ -11,6 +11,9 @@ class MitraVetItem extends Model
     protected $fillable = [
         'nama_barang',
         'satuan',
+        'harga_modal',
+        'harga_jual',
+        'profit',
         'harga_satuan',
         'stok',
         'created_by',
@@ -19,6 +22,9 @@ class MitraVetItem extends Model
     ];
 
     protected $casts = [
+        'harga_modal'  => 'decimal:2',
+        'harga_jual'   => 'decimal:2',
+        'profit'       => 'decimal:2',
         'harga_satuan' => 'decimal:2',
         'stok'         => 'integer',
         'is_deleted'   => 'boolean',

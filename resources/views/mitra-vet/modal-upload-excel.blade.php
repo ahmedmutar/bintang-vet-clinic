@@ -12,7 +12,8 @@
                     <strong><i class="fa fa-info-circle"></i> Petunjuk:</strong>
                     <ul style="margin-top:6px; margin-bottom:0;">
                         <li>Download template Excel terlebih dahulu.</li>
-                        <li>Isi data sesuai kolom: <code>nama_barang</code>, <code>satuan</code>, <code>harga_satuan</code>, <code>stok</code>.</li>
+                        <li>Isi data sesuai kolom: <code>nama_barang</code>, <code>satuan</code>, <code>harga_modal</code>, <code>harga_jual</code>, <code>stok</code>.</li>
+                        <li><strong>Validasi harga:</strong> <code>harga_jual</code> harus lebih besar dari <code>harga_modal</code>.</li>
                         <li>Jika nama barang sudah ada, stok akan <strong>ditambahkan</strong> (tidak duplikat).</li>
                         <li>File maksimal 5MB, format <code>.xlsx</code> atau <code>.xls</code>.</li>
                     </ul>

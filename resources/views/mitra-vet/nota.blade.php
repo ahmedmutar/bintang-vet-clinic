@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Nota Mitra Vet - {{ $order->nomor_order }}</title>
+    <link rel="stylesheet" href="{{ asset('bower_components/font-awesome/css/font-awesome.min.css') }}">
     <style>
         * {
             box-sizing: border-box;
@@ -214,8 +215,7 @@
 <div class="invoice-card">
     <div class="header">
         <div class="clinic-brand">
-            <h2>Bintang Vet Clinic</h2>
-            <p>Divisi Mitra Vet - Layanan & Distribusi Produk</p>
+            <h2>Mitra Vet</h2>
         </div>
         <div class="invoice-title">
             <h3>NOTA PENJUALAN</h3>
@@ -290,11 +290,11 @@
     @endif
 
     <div class="action-buttons">
-        <button class="btn btn-print" onclick="window.print()">
-            Cetak / Download PDF
-        </button>
+        <a href="{{ url('/mitra-vet/nota/' . $order->id . '/download') }}" class="btn btn-print">
+            <i class="fa fa-download"></i> Cetak / Download Nota
+        </a>
         <button class="btn btn-close" onclick="window.close()">
-            Tutup
+            <i class="fa fa-times"></i> Tutup
         </button>
     </div>
 </div>

@@ -14,13 +14,14 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
 class MitraVetItemTemplate implements FromArray, WithHeadings, WithStyles, WithColumnWidths
 {
     use Exportable;
+
     public function array(): array
     {
-        // Contoh data agar user paham format yang diharapkan
+        // Contoh data: nama_barang, satuan, harga_modal, harga_jual, stok
         return [
-            ['Paket Vitamin A', 'Botol', 50000, 100],
-            ['Obat Cacing Kucing', 'Strip', 25000, 50],
-            ['Shampo Anjing', 'Pcs', 35000, 30],
+            ['Paket Vitamin A', 'Botol', 30000, 50000, 100],
+            ['Obat Cacing Kucing', 'Strip', 15000, 25000, 50],
+            ['Shampo Anjing', 'Pcs', 20000, 35000, 30],
         ];
     }
 
@@ -29,15 +30,16 @@ class MitraVetItemTemplate implements FromArray, WithHeadings, WithStyles, WithC
         return [
             'nama_barang',
             'satuan',
-            'harga_satuan',
+            'harga_modal',
+            'harga_jual',
             'stok',
         ];
     }
 
     public function styles(Worksheet $sheet)
     {
-        // Style header
-        $sheet->getStyle('A1:D1')->applyFromArray([
+        // Style header (A1:E1)
+        $sheet->getStyle('A1:E1')->applyFromArray([
             'font' => [
                 'bold'  => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -52,7 +54,7 @@ class MitraVetItemTemplate implements FromArray, WithHeadings, WithStyles, WithC
         ]);
 
         // Style baris contoh (abu-abu muda)
-        $sheet->getStyle('A2:D4')->applyFromArray([
+        $sheet->getStyle('A2:E4')->applyFromArray([
             'fill' => [
                 'fillType'   => Fill::FILL_SOLID,
                 'startColor' => ['rgb' => 'F2F2F2'],
@@ -63,11 +65,14 @@ class MitraVetItemTemplate implements FromArray, WithHeadings, WithStyles, WithC
         $sheet->getComment('A1')->getText()->createTextRun(
             'Isi nama barang. Jika nama sudah ada, stok akan ditambahkan.'
         );
-        $sheet->getComment('D1')->getText()->createTextRun(
-            'Isi jumlah stok awal (angka bulat, tidak boleh negatif).'
-        );
         $sheet->getComment('C1')->getText()->createTextRun(
-            'Isi harga satuan dalam Rupiah (angka, tanpa titik/koma).'
+            'Isi harga modal / modal beli (angka, tanpa titik/koma).'
+        );
+        $sheet->getComment('D1')->getText()->createTextRun(
+            'Isi harga jual (angka, tanpa titik/koma). HARUS LEBIH BESAR DARI HARGA MODAL.'
+        );
+        $sheet->getComment('E1')->getText()->createTextRun(
+            'Isi jumlah stok awal (angka bulat, tidak boleh negatif).'
         );
 
         return [];
@@ -79,7 +84,8 @@ class MitraVetItemTemplate implements FromArray, WithHeadings, WithStyles, WithC
             'A' => 30,
             'B' => 15,
             'C' => 18,
-            'D' => 12,
+            'D' => 18,
+            'E' => 12,
         ];
     }
 }

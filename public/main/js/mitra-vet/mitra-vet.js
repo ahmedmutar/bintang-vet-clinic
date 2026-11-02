@@ -16,15 +16,18 @@ $(document).ready(function () {
     function initYearFilters() {
         let chartYearOptions = '';
         let orderYearOptions = '<option value="">-- Semua Tahun --</option>';
+        let strukYearOptions = '';
 
         // Loop dari tahun berjalan (+1 untuk antisipasi) mundur sampai tahun awal
         for (let y = currentYear + 1; y >= startYear; y--) {
             chartYearOptions += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
             orderYearOptions += `<option value="${y}">${y}</option>`;
+            strukYearOptions += `<option value="${y}" ${y === currentYear ? 'selected' : ''}>${y}</option>`;
         }
 
         $('#filter-chart-year').html(chartYearOptions).val(currentYear);
         $('#filter-order-year').html(orderYearOptions); // default semua tahun agar riwayat selalu terlihat
+        $('#struk-year').html(strukYearOptions).val(currentYear);
         $('#filter-chart-month').val(currentMonth);
     }
     initYearFilters();
@@ -36,10 +39,16 @@ $(document).ready(function () {
     }
 
     // Validasi Akses Role:
-    // Admin & Dokter: Bisa Tambah Barang & Order Barang
-    // Resepsionis: Hanya Bisa Order Barang
+    // Admin: Bisa Tambah Barang, Order Barang (mengurangi stok), & Hapus Order
+    // Dokter: Bisa Tambah Barang & Lihat Order (tidak bisa buat/hapus order)
+    // Resepsionis: Hanya Bisa Lihat Order (tidak bisa buat order/tambah barang)
     // Selain itu: Ditolak / Redirect
     const userRole = (typeof role !== 'undefined' ? role.toLowerCase() : '');
+
+    if (userRole !== 'admin') {
+        // Non-admin tidak bisa membuat orderan (mengurangi stok barang)
+        $('#btnBuatOrder').hide();
+    }
 
     if (userRole === 'resepsionis') {
         // Resepsionis tidak dapat menambah barang maupun menambah stok
@@ -57,7 +66,7 @@ $(document).ready(function () {
 
     function loadStokBarang() {
         const keyword = $('#search-stok').val();
-        $('#list-stok-mitra-vet').html('<tr class="text-center"><td colspan="7">Memuat data stok...</td></tr>');
+        $('#list-stok-mitra-vet').html('<tr class="text-center"><td colspan="9">Memuat data stok...</td></tr>');
 
         $.ajax({
             url: $('.baseUrl').val() + '/api/mitra-vet/items',
@@ -75,9 +84,15 @@ $(document).ready(function () {
                 $('#total-jenis-barang').text(data.length > 0 ? (resp.total_paging > 1 ? `${data.length}+` : data.length) : '0');
                 $('#total-nilai-aset').text(formatRupiah(resp.total_nilai_aset));
                 $('#tfoot-total-aset').text(formatRupiah(resp.total_nilai_aset));
+                if (resp.total_profit_bulan !== undefined) {
+                    $('#total-profit-bulan').text(formatRupiah(resp.total_profit_bulan));
+                }
+                if (resp.total_profit_keseluruhan !== undefined) {
+                    $('#total-profit-keseluruhan').text(formatRupiah(resp.total_profit_keseluruhan));
+                }
 
                 if (data.length === 0) {
-                    rows = '<tr class="text-center"><td colspan="7">Belum ada data barang.</td></tr>';
+                    rows = '<tr class="text-center"><td colspan="9">Belum ada data barang.</td></tr>';
                 } else {
                     data.forEach(function (item, index) {
                         const no = (currentPageStok - 1) * 50 + (index + 1);
@@ -94,7 +109,7 @@ $(document).ready(function () {
                                 <button class="btn btn-xs btn-success btn-quick-stock" data-id="${item.id}" data-nama="${item.nama_barang}" data-stok="${item.stok}" title="Tambah Stok">
                                     <i class="fa fa-plus"></i> Stok
                                 </button>
-                                <button class="btn btn-xs btn-warning btn-edit-item" data-id="${item.id}" data-nama="${item.nama_barang}" data-satuan="${item.satuan}" data-harga="${item.harga_satuan}" title="Edit Barang">
+                                <button class="btn btn-xs btn-warning btn-edit-item" data-id="${item.id}" data-nama="${item.nama_barang}" data-satuan="${item.satuan}" data-modal="${item.harga_modal}" data-jual="${item.harga_jual}" title="Edit Barang">
                                     <i class="fa fa-pencil"></i>
                                 </button>
                             `;
@@ -119,7 +134,9 @@ $(document).ready(function () {
                                 <td><strong>${item.nama_barang}</strong></td>
                                 <td>${item.satuan}</td>
                                 <td>${stokBadge}</td>
-                                <td>${formatRupiah(item.harga_satuan)}</td>
+                                <td>${formatRupiah(item.harga_modal)}</td>
+                                <td>${formatRupiah(item.harga_jual)}</td>
+                                <td><span class="text-success" style="font-weight:bold;">${formatRupiah(item.profit)}</span></td>
                                 <td><strong>${formatRupiah(nilaiAset)}</strong></td>
                                 <td>${actionBtns}</td>
                             </tr>
@@ -138,7 +155,7 @@ $(document).ready(function () {
                     localStorage.removeItem('vet-clinic');
                     location.href = $('.baseUrl').val() + '/masuk';
                 }
-                $('#list-stok-mitra-vet').html('<tr class="text-center text-danger"><td colspan="7">Gagal memuat data.</td></tr>');
+                $('#list-stok-mitra-vet').html('<tr class="text-center text-danger"><td colspan="9">Gagal memuat data.</td></tr>');
             }
         });
     }
@@ -155,6 +172,24 @@ $(document).ready(function () {
         loadStokBarang();
     });
 
+    // Perhitungan otomatis profit modal
+    function hitungModalProfit() {
+        const modal = parseFloat($('#input-harga-modal').val()) || 0;
+        const jual = parseFloat($('#input-harga-jual').val()) || 0;
+        const profit = jual - modal;
+        if (jual > 0 || modal > 0) {
+            $('#input-profit').val(formatRupiah(profit));
+            if (jual <= modal && jual > 0) {
+                $('#err-harga-jual').text('Harga Jual harus lebih besar dari Harga Modal!');
+            } else {
+                $('#err-harga-jual').empty();
+            }
+        } else {
+            $('#input-profit').val('Rp 0');
+        }
+    }
+    $('#input-harga-modal, #input-harga-jual').on('input keyup change', hitungModalProfit);
+
     // Tombol Edit Item (Modal)
     $(document).on('click', '.btn-edit-item', function () {
         modalActionState = 'edit-item';
@@ -162,7 +197,9 @@ $(document).ready(function () {
         $('#modal-tambah-barang-title').text('Ubah Data Barang');
         $('#input-nama-barang').val($(this).data('nama'));
         $('#input-satuan').val($(this).data('satuan'));
-        $('#input-harga-satuan').val($(this).data('harga'));
+        $('#input-harga-modal').val($(this).data('modal') || 0);
+        $('#input-harga-jual').val($(this).data('jual') || 0);
+        hitungModalProfit();
         $('#wrap-stok-awal').hide();
         $('.validate-error').empty();
         $('#modal-tambah-barang').modal('show');
@@ -173,12 +210,18 @@ $(document).ready(function () {
         $('.validate-error').empty();
         const nama = $('#input-nama-barang').val().trim();
         const satuan = $('#input-satuan').val().trim();
-        const harga = $('#input-harga-satuan').val().trim();
+        const modal = $('#input-harga-modal').val().trim();
+        const jual = $('#input-harga-jual').val().trim();
 
         let hasError = false;
         if (!nama) { $('#err-nama-barang').text('Nama barang wajib diisi'); hasError = true; }
         if (!satuan) { $('#err-satuan').text('Satuan wajib diisi'); hasError = true; }
-        if (!harga || isNaN(harga)) { $('#err-harga-satuan').text('Harga harus angka valid'); hasError = true; }
+        if (!modal || isNaN(modal) || parseFloat(modal) < 0) { $('#err-harga-modal').text('Harga modal harus angka valid (>= 0)'); hasError = true; }
+        if (!jual || isNaN(jual) || parseFloat(jual) < 0) { $('#err-harga-jual').text('Harga jual harus angka valid (>= 0)'); hasError = true; }
+        if (!hasError && parseFloat(jual) <= parseFloat(modal)) {
+            $('#err-harga-jual').text('Harga Jual harus lebih besar dari Harga Modal!');
+            hasError = true;
+        }
         if (hasError) return;
 
         $('#btnSimpanBarang').prop('disabled', true).text('Menyimpan...');
@@ -192,7 +235,8 @@ $(document).ready(function () {
                 id: selectedItemId,
                 nama_barang: nama,
                 satuan: satuan,
-                harga_satuan: harga
+                harga_modal: modal,
+                harga_jual: jual
             },
             success: function (resp) {
                 $('#modal-tambah-barang').modal('hide');
@@ -324,18 +368,49 @@ $(document).ready(function () {
     // 2. TAB TAMBAH BARANG (TAB 2)
     // =========================================================================
 
+    // Perhitungan otomatis profit di tab tambah barang
+    function hitungTabProfit() {
+        const modal = parseFloat($('#tab-harga-modal').val()) || 0;
+        const jual = parseFloat($('#tab-harga-jual').val()) || 0;
+        const profit = jual - modal;
+        if (jual > 0 || modal > 0) {
+            $('#tab-profit').val(formatRupiah(profit));
+            if (jual <= modal && jual > 0) {
+                $('#err-tab-jual').text('Harga Jual harus lebih besar dari Harga Modal!');
+            } else {
+                $('#err-tab-jual').empty();
+            }
+        } else {
+            $('#tab-profit').val('Rp 0');
+        }
+    }
+    $('#tab-harga-modal, #tab-harga-jual').on('input keyup change', hitungTabProfit);
+
+    $('#btnResetTabBarang, button[type="reset"]').on('click', function () {
+        setTimeout(function () {
+            $('#tab-profit').val('Rp 0');
+            $('#err-tab-nama, #err-tab-satuan, #err-tab-modal, #err-tab-jual, #err-tab-stok, #err-tab-global').empty();
+        }, 50);
+    });
+
     // A. Simpan Barang Manual dari Tab
     $('#btnSimpanTabBarang').on('click', function () {
-        $('#err-tab-nama, #err-tab-satuan, #err-tab-harga, #err-tab-stok, #err-tab-global').empty();
+        $('#err-tab-nama, #err-tab-satuan, #err-tab-modal, #err-tab-jual, #err-tab-stok, #err-tab-global').empty();
         const nama = $('#tab-nama-barang').val().trim();
         const satuan = $('#tab-satuan').val().trim();
-        const harga = $('#tab-harga-satuan').val().trim();
+        const modal = $('#tab-harga-modal').val().trim();
+        const jual = $('#tab-harga-jual').val().trim();
         const stokAwal = $('#tab-stok-awal').val().trim();
 
         let hasError = false;
         if (!nama) { $('#err-tab-nama').text('Nama barang wajib diisi'); hasError = true; }
         if (!satuan) { $('#err-tab-satuan').text('Satuan wajib diisi'); hasError = true; }
-        if (!harga || isNaN(harga)) { $('#err-tab-harga').text('Harga harus angka valid'); hasError = true; }
+        if (!modal || isNaN(modal) || parseFloat(modal) < 0) { $('#err-tab-modal').text('Harga modal harus angka valid (>= 0)'); hasError = true; }
+        if (!jual || isNaN(jual) || parseFloat(jual) < 0) { $('#err-tab-jual').text('Harga jual harus angka valid (>= 0)'); hasError = true; }
+        if (!hasError && parseFloat(jual) <= parseFloat(modal)) {
+            $('#err-tab-jual').text('Harga Jual harus lebih besar dari Harga Modal!');
+            hasError = true;
+        }
         if (stokAwal === '' || isNaN(stokAwal) || parseInt(stokAwal) < 0) {
             $('#err-tab-stok').text('Stok awal wajib diisi (>= 0)');
             hasError = true;
@@ -352,11 +427,13 @@ $(document).ready(function () {
             data: {
                 nama_barang: nama,
                 satuan: satuan,
-                harga_satuan: harga,
+                harga_modal: modal,
+                harga_jual: jual,
                 stok: stokAwal
             },
             success: function (resp) {
                 $('#form-tab-tambah-barang')[0].reset();
+                $('#tab-profit').val('Rp 0');
                 showNotice('Sukses', resp.message || 'Barang baru berhasil ditambahkan.');
                 loadStokBarang();
                 loadChart();
@@ -522,11 +599,30 @@ $(document).ready(function () {
                             detailItemsHtml = `<div style="font-size:12px; line-height:1.6; text-align:left;">${itemsList.join('')}</div>`;
                         }
 
+                        let paymentBadge = '';
+                        if (order.tipe_pembayaran === 'cicilan') {
+                            if (order.status_pembayaran === 'lunas' || parseFloat(order.sisa_tagihan) <= 0) {
+                                paymentBadge = '<div style="margin-top:3px;"><span class="label label-success" style="font-size:10px;"><i class="fa fa-check"></i> Lunas (Cicil)</span></div>';
+                            } else {
+                                paymentBadge = `<div style="margin-top:3px;"><span class="label label-warning" style="font-size:10px;" title="Sisa Piutang: ${formatRupiah(order.sisa_tagihan)}"><i class="fa fa-clock-o"></i> Cicil (Sisa: ${formatRupiah(order.sisa_tagihan)})</span></div>`;
+                            }
+                        } else {
+                            paymentBadge = '<div style="margin-top:3px;"><span class="label label-success" style="font-size:10px;"><i class="fa fa-check"></i> Lunas</span></div>';
+                        }
+
                         let actionBtns = `
-                            <a href="${$('.baseUrl').val()}/mitra-vet/nota/${order.id}" target="_blank" class="btn btn-xs btn-primary" title="Cetak Nota">
-                                <i class="fa fa-print"></i> Nota
+                            <a href="${$('.baseUrl').val()}/mitra-vet/nota/${order.id}/download" class="btn btn-xs btn-primary" title="Download Nota (PDF)">
+                                <i class="fa fa-download"></i> Nota
                             </a>
                         `;
+
+                        if (parseFloat(order.sisa_tagihan) > 0) {
+                            actionBtns += `
+                                <a href="${$('.baseUrl').val()}/mitra-vet/orders/${order.id}/invoice-penagihan" class="btn btn-xs btn-danger" title="Download Invoice Penagihan (PDF)">
+                                    <i class="fa fa-file-pdf-o"></i> Tagihan
+                                </a>
+                            `;
+                        }
 
                         if (typeof role !== 'undefined' && role.toLowerCase() === 'admin') {
                             actionBtns += `
@@ -545,7 +641,10 @@ $(document).ready(function () {
                                 <td>${detailItemsHtml}</td>
                                 <td>${formatRupiah(order.total_harga)}</td>
                                 <td>${formatRupiah(order.biaya_ongkir)}</td>
-                                <td><strong>${formatRupiah(order.grand_total)}</strong></td>
+                                <td>
+                                    <strong>${formatRupiah(order.grand_total)}</strong>
+                                    ${paymentBadge}
+                                </td>
                                 <td>${order.created_by || '-'}</td>
                                 <td>${order.created_at}</td>
                                 <td>${actionBtns}</td>
@@ -625,6 +724,115 @@ $(document).ready(function () {
                 } else {
                     showNotice('Error', 'Gagal mendownload data orderan.');
                 }
+            }
+        });
+    });
+
+    // Download Struk PDF per Pelanggan / Mitra (Bulanan / Tahunan)
+    $('#btnModalStrukPelanggan').on('click', function () {
+        $('#err-struk-customer, #err-struk-year, #err-struk-global').empty();
+        $('#struk-year').val(currentYear);
+        $('#struk-month').val(currentMonth);
+
+        // Load customers ke dropdown
+        $.ajax({
+            url: $('.baseUrl').val() + '/api/mitra-vet/customers',
+            type: 'GET',
+            dataType: 'JSON',
+            headers: { Authorization: `Bearer ${token}` },
+            success: function (customers) {
+                let opt = '<option value="">-- Cari & Pilih Pelanggan / Mitra --</option>';
+                customers.forEach(function (c) {
+                    let hp = c.no_hp ? ` (${c.no_hp})` : '';
+                    opt += `<option value="${c.id}">${c.nama}${hp}</option>`;
+                });
+                $('#struk-customer-id').html(opt);
+
+                $('#struk-customer-id').select2({
+                    placeholder: '-- Cari & Pilih Pelanggan / Mitra --',
+                    allowClear: true,
+                    dropdownParent: $('#modal-struk-pelanggan'),
+                    width: '100%'
+                });
+
+                $('#modal-struk-pelanggan').modal('show');
+            },
+            error: function () {
+                showNotice('Gagal', 'Gagal memuat daftar pelanggan.');
+            }
+        });
+    });
+
+    // Proses Download Struk PDF Pelanggan
+    $('#btnProsesDownloadStruk').on('click', function () {
+        $('#err-struk-customer, #err-struk-year, #err-struk-global').empty();
+        const customerId = $('#struk-customer-id').val();
+        const year = $('#struk-year').val();
+        const month = $('#struk-month').val();
+
+        let hasErr = false;
+        if (!customerId) {
+            $('#err-struk-customer').text('Pilih pelanggan/mitra terlebih dahulu');
+            hasErr = true;
+        }
+        if (!year) {
+            $('#err-struk-year').text('Pilih tahun');
+            hasErr = true;
+        }
+        if (hasErr) return;
+
+        $('#btnProsesDownloadStruk').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Menyiapkan PDF...');
+
+        $.ajax({
+            url: $('.baseUrl').val() + '/api/mitra-vet/orders/customer-pdf',
+            type: 'GET',
+            headers: { Authorization: `Bearer ${token}` },
+            xhrFields: { responseType: 'blob' },
+            data: {
+                customer_id: customerId,
+                year: year,
+                month: month
+            },
+            success: function (data, status, xhr) {
+                let filename = 'Struk_Rekap_Pelanggan.pdf';
+                let disposition = xhr.getResponseHeader('content-disposition');
+                if (disposition) {
+                    let matches = /"([^"]*)"/.exec(disposition);
+                    if (matches != null && matches[1]) filename = matches[1];
+                }
+                let blob = new Blob([data], { type: 'application/pdf' });
+                let downloadUrl = URL.createObjectURL(blob);
+                let a = document.createElement("a");
+                a.href = downloadUrl;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(downloadUrl);
+                }, 100);
+
+                $('#modal-struk-pelanggan').modal('hide');
+                showNotice('Berhasil', 'Struk PDF riwayat order pelanggan berhasil diunduh.');
+            },
+            error: function (err) {
+                const reader = new FileReader();
+                reader.onload = function () {
+                    try {
+                        const json = JSON.parse(reader.result);
+                        $('#err-struk-global').text(json.message || 'Gagal mendownload struk PDF.');
+                    } catch (e) {
+                        $('#err-struk-global').text('Gagal mendownload struk PDF atau tidak ada transaksi pada periode ini.');
+                    }
+                };
+                if (err.responseText || err.response) {
+                    reader.readAsText(err.response || err.responseText);
+                } else {
+                    $('#err-struk-global').text('Gagal mendownload struk PDF atau tidak ada transaksi pada periode ini.');
+                }
+            },
+            complete: function () {
+                $('#btnProsesDownloadStruk').prop('disabled', false).html('<i class="fa fa-download"></i> Download Struk PDF');
             }
         });
     });
@@ -731,6 +939,11 @@ $(document).ready(function () {
         orderItemsList = [];
         $('#form-order')[0].reset();
         $('#order-ongkir').val('0');
+        $('#order-tipe-pembayaran').val('lunas');
+        $('#order-jumlah-termin').val(3);
+        $('#order-uang-muka').val(0);
+        $('#order-jatuh-tempo').val('');
+        $('.wrap-order-cicilan').hide();
         renderOrderItemsTable();
         $('.validate-error').empty();
 
@@ -849,7 +1062,36 @@ $(document).ready(function () {
         $('#order-total-harga').text(formatRupiah(totalHarga));
         $('#order-total-ongkir').text(formatRupiah(ongkir));
         $('#order-grand-total').text(formatRupiah(grandTotal));
+
+        hitungEstimasiAngsuran();
     }
+
+    // Toggle cicilan di modal order
+    $('#order-tipe-pembayaran').on('change', function () {
+        if ($(this).val() === 'cicilan') {
+            $('.wrap-order-cicilan').slideDown();
+            hitungEstimasiAngsuran();
+        } else {
+            $('.wrap-order-cicilan').slideUp();
+        }
+    });
+
+    function hitungEstimasiAngsuran() {
+        let totalHarga = 0;
+        orderItemsList.forEach(oi => { totalHarga += oi.subtotal; });
+        let ongkir = parseFloat($('#order-ongkir').val()) || 0;
+        let grandTotal = totalHarga + ongkir;
+
+        let dp = parseFloat($('#order-uang-muka').val()) || 0;
+        let termin = parseInt($('#order-jumlah-termin').val()) || 1;
+        let sisa = Math.max(grandTotal - dp, 0);
+        let angsuran = termin > 0 ? (sisa / termin) : sisa;
+
+        $('#order-estimasi-angsuran').val(formatRupiah(Math.round(angsuran)));
+        $('#order-keterangan-sisa').text(`Sisa Piutang: ${formatRupiah(sisa)}`);
+    }
+
+    $('#order-uang-muka, #order-jumlah-termin').on('input keyup change', hitungEstimasiAngsuran);
 
     // Submit Order Baru
     $('#btnSimpanOrder').on('click', function () {
@@ -860,6 +1102,10 @@ $(document).ready(function () {
         const alamat = $('#order-alamat').val().trim();
         const ongkir = $('#order-ongkir').val().trim() || 0;
         const catatan = $('#order-catatan').val().trim();
+        const tipeBayar = $('#order-tipe-pembayaran').val() || 'lunas';
+        const termin = parseInt($('#order-jumlah-termin').val()) || 1;
+        const dp = parseFloat($('#order-uang-muka').val()) || 0;
+        const tempo = $('#order-jatuh-tempo').val();
 
         let hasError = false;
         if (!customerId) { $('#err-order-nama').text('Pilih pelanggan terlebih dahulu'); hasError = true; }
@@ -868,6 +1114,16 @@ $(document).ready(function () {
         if (orderItemsList.length === 0) {
             $('#err-order-items').text('Tambahkan minimal 1 item barang ke orderan');
             hasError = true;
+        }
+        if (tipeBayar === 'cicilan') {
+            if (!tempo) {
+                $('#err-order-tempo').text('Tanggal jatuh tempo wajib diisi');
+                hasError = true;
+            }
+            if (dp < 0) {
+                $('#err-order-dp').text('Uang muka tidak boleh negatif');
+                hasError = true;
+            }
         }
         if (hasError) return;
 
@@ -878,6 +1134,10 @@ $(document).ready(function () {
             alamat: alamat,
             biaya_ongkir: ongkir,
             catatan: catatan,
+            tipe_pembayaran: tipeBayar,
+            jumlah_termin: termin,
+            uang_muka: dp,
+            tanggal_jatuh_tempo: tempo,
             items: orderItemsList.map(i => ({ item_id: i.item_id, quantity: i.quantity }))
         };
 
@@ -891,10 +1151,10 @@ $(document).ready(function () {
             data: payload,
             success: function (resp) {
                 $('#modal-order').modal('hide');
-                showNotice('Sukses', `Order ${resp.nomor_order} berhasil dibuat! Nota siap dicetak.`);
+                showNotice('Sukses', `Order ${resp.nomor_order} berhasil dibuat! Nota siap diunduh.`);
 
                 if (resp.order_id) {
-                    window.open($('.baseUrl').val() + '/mitra-vet/nota/' + resp.order_id, '_blank');
+                    window.open($('.baseUrl').val() + '/mitra-vet/nota/' + resp.order_id + '/download', '_blank');
                 }
 
                 loadOrders();
@@ -962,7 +1222,292 @@ $(document).ready(function () {
     });
 
     // =========================================================================
-    // 4. GRAFIK HIGHCHARTS
+    // 4. PENAGIHAN & PIUTANG (TAB 4)
+    // =========================================================================
+
+    let currentPagePiutang = 1;
+
+    function loadPiutang() {
+        const status = $('#filter-piutang-status').val();
+        const customerId = $('#filter-piutang-customer').val();
+        const keyword = $('#search-piutang').val().trim();
+
+        $('#list-penagihan-mitra-vet').html('<tr class="text-center"><td colspan="11">Memuat data penagihan & piutang...</td></tr>');
+
+        $.ajax({
+            url: $('.baseUrl').val() + '/api/mitra-vet/piutang',
+            type: 'GET',
+            dataType: 'JSON',
+            headers: { Authorization: `Bearer ${token}` },
+            data: {
+                page: currentPagePiutang,
+                status: status,
+                customer_id: customerId,
+                keyword: keyword
+            },
+            success: function (resp) {
+                // Update summary cards
+                if (resp.summary) {
+                    $('#piutang-total-sisa').text(formatRupiah(resp.summary.total_sisa_piutang));
+                    $('#piutang-total-tempo').text(formatRupiah(resp.summary.total_jatuh_tempo));
+                    $('#piutang-total-terbayar').text(formatRupiah(resp.summary.total_tertagih));
+                }
+
+                let rows = '';
+                const data = resp.data || [];
+
+                if (data.length === 0) {
+                    rows = '<tr class="text-center"><td colspan="11">Tidak ada data piutang / penagihan.</td></tr>';
+                } else {
+                    data.forEach(function (ord, idx) {
+                        const no = (currentPagePiutang - 1) * 50 + (idx + 1);
+
+                        // Jatuh tempo badge
+                        let tempoBadge = ord.tgl_tempo || '-';
+                        if (ord.is_jatuh_tempo) {
+                            tempoBadge = `<span class="label label-danger" title="Sudah lewat jatuh tempo!"><i class="fa fa-warning"></i> ${ord.tgl_tempo}</span>`;
+                        }
+
+                        // Status badge
+                        let statusBadge = '';
+                        if (parseFloat(ord.sisa_tagihan) <= 0) {
+                            statusBadge = '<span class="label label-success"><i class="fa fa-check"></i> Lunas</span>';
+                        } else if (ord.is_jatuh_tempo) {
+                            statusBadge = '<span class="label label-danger"><i class="fa fa-exclamation-triangle"></i> Jatuh Tempo</span>';
+                        } else {
+                            statusBadge = '<span class="label label-warning"><i class="fa fa-clock-o"></i> Cicilan</span>';
+                        }
+
+                        // Sisa tagihan format
+                        let sisaText = parseFloat(ord.sisa_tagihan) > 0 
+                            ? `<strong class="text-danger">${formatRupiah(ord.sisa_tagihan)}</strong>` 
+                            : `<span class="text-success">${formatRupiah(0)}</span>`;
+
+                        let actionBtns = `
+                            <a href="${$('.baseUrl').val()}/mitra-vet/orders/${ord.id}/invoice-penagihan" class="btn btn-xs btn-danger" title="Download Invoice Penagihan (PDF)">
+                                <i class="fa fa-file-pdf-o"></i> Tagihan
+                            </a>
+                        `;
+
+                        if (parseFloat(ord.sisa_tagihan) > 0) {
+                            actionBtns = `
+                                <button class="btn btn-xs btn-success btn-bayar-cicilan" 
+                                    data-id="${ord.id}" 
+                                    data-no="${ord.nomor_order}" 
+                                    data-klien="${ord.nama_pembeli}" 
+                                    data-total="${ord.grand_total}" 
+                                    data-sisa="${ord.sisa_tagihan}" 
+                                    data-termin="${ord.jumlah_termin}" 
+                                    data-masuk="${ord.total_cicilan_masuk}" 
+                                    title="Input Pembayaran Cicilan">
+                                    <i class="fa fa-money"></i> Bayar
+                                </button>
+                            ` + actionBtns;
+                        }
+
+                        actionBtns += `
+                            <button class="btn btn-xs btn-info btn-lihat-riwayat" data-id="${ord.id}" title="Lihat Riwayat Cicilan">
+                                <i class="fa fa-history"></i> Riwayat
+                            </button>
+                        `;
+
+                        rows += `
+                            <tr>
+                                <td>${no}</td>
+                                <td><span class="label label-info">${ord.nomor_order}</span></td>
+                                <td><strong>${ord.nama_pembeli}</strong></td>
+                                <td>${ord.tgl_order}</td>
+                                <td>${tempoBadge}</td>
+                                <td>${formatRupiah(ord.grand_total)}</td>
+                                <td><span class="text-green">${formatRupiah(ord.total_terbayar)}</span></td>
+                                <td>${sisaText}</td>
+                                <td><span class="badge bg-purple">${ord.total_cicilan_masuk} / ${ord.jumlah_termin}x</span></td>
+                                <td>${statusBadge}</td>
+                                <td>${actionBtns}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                $('#list-penagihan-mitra-vet').html(rows);
+                renderPagination('#pagination-penagihan', resp.total_paging, currentPagePiutang, function (p) {
+                    currentPagePiutang = p;
+                    loadPiutang();
+                });
+            },
+            error: function () {
+                $('#list-penagihan-mitra-vet').html('<tr class="text-center text-danger"><td colspan="11">Gagal memuat data piutang.</td></tr>');
+            }
+        });
+    }
+
+    function loadCustomerPiutangFilter() {
+        $.ajax({
+            url: $('.baseUrl').val() + '/api/mitra-vet/customers',
+            type: 'GET',
+            dataType: 'JSON',
+            headers: { Authorization: `Bearer ${token}` },
+            success: function (custs) {
+                let opt = '<option value="">-- Semua Pelanggan --</option>';
+                custs.forEach(c => { opt += `<option value="${c.id}">${c.nama}</option>`; });
+                $('#filter-piutang-customer').html(opt);
+            }
+        });
+    }
+
+    // Filter event handlers Tab Penagihan
+    $('#filter-piutang-status, #filter-piutang-customer').on('change', function () {
+        currentPagePiutang = 1;
+        loadPiutang();
+    });
+
+    $('#search-piutang').on('keyup', function (e) {
+        if (e.which === 13) {
+            currentPagePiutang = 1;
+            loadPiutang();
+        }
+    });
+
+    // Buka Modal Bayar Cicilan
+    $(document).on('click', '.btn-bayar-cicilan', function () {
+        const orderId = $(this).data('id');
+        const noOrder = $(this).data('no');
+        const klien = $(this).data('klien');
+        const total = parseFloat($(this).data('total')) || 0;
+        const sisa = parseFloat($(this).data('sisa')) || 0;
+        const termin = parseInt($(this).data('termin')) || 1;
+        const cicilanMasuk = parseInt($(this).data('masuk')) || 0;
+        const nextCicilan = cicilanMasuk + 1;
+
+        const sisaTermin = Math.max(termin - cicilanMasuk, 1);
+        const rekomendasiAngsuran = Math.round(sisa / sisaTermin);
+
+        $('#bayar-order-id').val(orderId);
+        $('#bayar-display-no').text(noOrder);
+        $('#bayar-display-klien').text(klien);
+        $('#bayar-display-total').text(formatRupiah(total));
+        $('#bayar-display-sisa').text(formatRupiah(sisa));
+        $('#bayar-display-cicilan-ke').val(`Cicilan ke-${nextCicilan} dari ${termin} termin`);
+        $('#bayar-display-rekomendasi').val(formatRupiah(rekomendasiAngsuran));
+        $('#bayar-nominal').val(rekomendasiAngsuran > 0 ? rekomendasiAngsuran : sisa);
+        $('#bayar-catatan').val('');
+        $('.validate-error').empty();
+
+        $('#modal-bayar-cicilan').modal('show');
+    });
+
+    // Submit Bayar Cicilan
+    $('#btnSimpanBayarCicilan').on('click', function () {
+        $('#err-bayar-nominal, #err-bayar-tanggal, #err-bayar-global').empty();
+        const orderId = $('#bayar-order-id').val();
+        const nominal = parseFloat($('#bayar-nominal').val()) || 0;
+        const tgl = $('#bayar-tanggal').val();
+        const metode = $('#bayar-metode').val();
+        const catatan = $('#bayar-catatan').val().trim();
+
+        let hasErr = false;
+        if (!nominal || nominal <= 0) {
+            $('#err-bayar-nominal').text('Nominal pembayaran harus lebih besar dari 0');
+            hasErr = true;
+        }
+        if (!tgl) {
+            $('#err-bayar-tanggal').text('Tanggal pembayaran wajib diisi');
+            hasErr = true;
+        }
+        if (hasErr) return;
+
+        $('#btnSimpanBayarCicilan').prop('disabled', true).html('<i class="fa fa-spinner fa-spin"></i> Menyimpan...');
+
+        $.ajax({
+            url: $('.baseUrl').val() + '/api/mitra-vet/piutang/bayar',
+            type: 'POST',
+            dataType: 'JSON',
+            headers: { Authorization: `Bearer ${token}` },
+            data: {
+                order_id: orderId,
+                jumlah_bayar: nominal,
+                tanggal_bayar: tgl,
+                metode_pembayaran: metode,
+                catatan: catatan
+            },
+            success: function (resp) {
+                $('#modal-bayar-cicilan').modal('hide');
+                showNotice('Berhasil', resp.message || 'Pembayaran cicilan berhasil dicatat!');
+                loadPiutang();
+                loadOrders();
+                loadStokBarang();
+                loadChart();
+            },
+            error: function (err) {
+                handleAjaxError(err, '#err-bayar-global');
+            },
+            complete: function () {
+                $('#btnSimpanBayarCicilan').prop('disabled', false).html('<i class="fa fa-save"></i> Simpan Pembayaran');
+            }
+        });
+    });
+
+    // Buka Modal Riwayat Cicilan
+    $(document).on('click', '.btn-lihat-riwayat', function () {
+        const orderId = $(this).data('id');
+        $('#list-riwayat-pembayaran').html('<tr class="text-center"><td colspan="8">Memuat riwayat...</td></tr>');
+        $('#modal-riwayat-cicilan').modal('show');
+
+        $.ajax({
+            url: $('.baseUrl').val() + `/api/mitra-vet/piutang/${orderId}/riwayat`,
+            type: 'GET',
+            dataType: 'JSON',
+            headers: { Authorization: `Bearer ${token}` },
+            success: function (resp) {
+                const ord = resp.order;
+                const payments = resp.payments || [];
+
+                $('#riwayat-no-order').text(ord.nomor_order);
+                $('#riwayat-klien').text(ord.nama_pembeli);
+                $('#riwayat-total-tagihan').text(formatRupiah(ord.grand_total));
+                $('#riwayat-total-terbayar').text(formatRupiah(ord.total_terbayar));
+                $('#riwayat-sisa-piutang').text(formatRupiah(ord.sisa_tagihan));
+
+                let statusText = '';
+                if (parseFloat(ord.sisa_tagihan) <= 0) {
+                    statusText = '<span class="label label-success"><i class="fa fa-check"></i> Lunas</span>';
+                } else {
+                    statusText = `<span class="label label-warning"><i class="fa fa-clock-o"></i> Cicilan (${ord.jumlah_termin}x)</span>`;
+                }
+                $('#riwayat-status').html(statusText);
+
+                let pRows = '';
+                if (payments.length === 0) {
+                    pRows = '<tr class="text-center"><td colspan="8">Belum ada pembayaran yang tercatat.</td></tr>';
+                } else {
+                    payments.forEach(function (p, idx) {
+                        let labelTermin = p.cicilan_ke === 0 ? '<span class="label label-info">Uang Muka (DP)</span>' : `<strong>Cicilan ke-${p.cicilan_ke}</strong>`;
+                        let staffName = p.creator ? p.creator.fullname : '-';
+                        pRows += `
+                            <tr>
+                                <td>${idx + 1}</td>
+                                <td><code>${p.nomor_pembayaran}</code></td>
+                                <td>${labelTermin}</td>
+                                <td>${p.tanggal_bayar}</td>
+                                <td>${p.metode_pembayaran.toUpperCase()}</td>
+                                <td class="text-right"><strong>${formatRupiah(p.jumlah_bayar)}</strong></td>
+                                <td>${p.catatan || '-'}</td>
+                                <td>${staffName}</td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                $('#list-riwayat-pembayaran').html(pRows);
+            },
+            error: function () {
+                $('#list-riwayat-pembayaran').html('<tr class="text-center text-danger"><td colspan="8">Gagal memuat riwayat pembayaran.</td></tr>');
+            }
+        });
+    });
+
+    // =========================================================================
+    // 5. GRAFIK HIGHCHARTS
     // =========================================================================
 
     function loadChart() {
@@ -980,7 +1525,12 @@ $(document).ready(function () {
                 $('#summary-masuk-nilai').text(formatRupiah(resp.summary.total_masuk_nilai));
                 $('#summary-keluar-qty').text(resp.summary.total_keluar_qty || 0);
                 $('#summary-keluar-nilai').text(formatRupiah(resp.summary.total_keluar_nilai));
-                $('#aset-keluar-bulan').text(formatRupiah(resp.summary.total_keluar_nilai));
+                if (resp.summary.total_profit_bulan !== undefined) {
+                    $('#total-profit-bulan').text(formatRupiah(resp.summary.total_profit_bulan));
+                }
+                if (resp.summary.total_profit_keseluruhan !== undefined) {
+                    $('#total-profit-keseluruhan').text(formatRupiah(resp.summary.total_profit_keseluruhan));
+                }
 
                 const daysInMonth = new Date(year, month, 0).getDate();
                 const categories = [];
@@ -1104,6 +1654,9 @@ $(document).ready(function () {
         } else if (target === '#tab-stok') {
             loadStokBarang();
             loadChart();
+        } else if (target === '#tab-penagihan') {
+            loadPiutang();
+            loadCustomerPiutangFilter();
         }
     });
 

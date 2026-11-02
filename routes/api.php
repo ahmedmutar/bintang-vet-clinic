@@ -298,6 +298,12 @@ Route::group(['middleware' => ['api']], function () {
         Route::post('mitra-vet/orders', 'MitraVetController@createOrder');
         Route::delete('mitra-vet/orders', 'MitraVetController@deleteOrder');
         Route::get('mitra-vet/orders/export-excel', 'MitraVetController@exportOrders');
+        Route::get('mitra-vet/orders/customer-pdf', 'MitraVetController@downloadCustomerRecapPdf');
+
+        //mitra vet - piutang & penagihan
+        Route::get('mitra-vet/piutang', 'MitraVetController@getPiutang');
+        Route::post('mitra-vet/piutang/bayar', 'MitraVetController@bayarCicilan');
+        Route::get('mitra-vet/piutang/{orderId}/riwayat', 'MitraVetController@getRiwayatCicilan');
 
         //mitra vet - customer
         Route::get('mitra-vet/customers', 'MitraVetController@getCustomers');
