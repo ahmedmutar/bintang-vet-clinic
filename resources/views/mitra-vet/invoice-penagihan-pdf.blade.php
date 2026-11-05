@@ -189,10 +189,18 @@
             <tr>
                 <td style="width: 55%; vertical-align: middle;">
                     <span style="font-size: 11px; color: #991b1b; text-transform: uppercase; font-weight: bold;">
-                        Total Sisa Tagihan yang Harus Dibayar:
+                        Nominal Cicilan yang Harus Dibayar:
                     </span><br>
                     <span style="font-size: 20px; font-weight: bold; color: #b91c1c;">
-                        Rp {{ number_format($order->sisa_tagihan, 0, ',', '.') }}
+                        Rp {{ number_format($nominalCicilan, 0, ',', '.') }}
+                    </span>
+                    <span style="font-size: 10px; color: #666; display: block; margin-top: 2px;">
+                        Cicilan ke-{{ $cicilanMasuk + 1 }} dari {{ $order->jumlah_termin }} termin
+                        &bull; Sisa {{ $sisaTermin }} termin lagi
+                    </span>
+                    <span style="font-size: 10px; color: #888; display: block; margin-top: 4px;">
+                        Total Sisa Tagihan Keseluruhan:
+                        <strong style="color: #b91c1c;">Rp {{ number_format($order->sisa_tagihan, 0, ',', '.') }}</strong>
                     </span>
                 </td>
                 <td style="width: 45%; vertical-align: middle; text-align: right; line-height: 1.5;">

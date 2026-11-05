@@ -24,7 +24,7 @@ $(document).ready(function() {
   if (role.toLowerCase() != 'admin') {
     $('.columnAction').hide(); $('#filterCabang').hide();
 
-    if (role.toLowerCase() == 'dokter') {
+    if (role.toLowerCase() == 'dokter' || role.toLowerCase() == 'admin_gudang' || role.toLowerCase() == 'admin gudang') {
       $('.section-left-box-title').append(
         `<button type="button" class="btn btn-success btn-download-excel" title="Download Excel">
           <i class="fa fa-file-excel-o" aria-hidden="true"></i>&nbsp;&nbsp;Download Excel

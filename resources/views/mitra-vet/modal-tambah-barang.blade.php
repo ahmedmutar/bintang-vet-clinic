@@ -41,8 +41,9 @@
                         <small class="text-muted"><i class="fa fa-info-circle"></i> Harga Jual harus lebih besar dari Harga Modal.</small>
                     </div>
                     <div class="form-group" id="wrap-stok-awal">
-                        <label>Stok Awal <span class="text-danger">*</span></label>
+                        <label id="label-stok-barang">Stok Awal <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" id="input-stok-awal" placeholder="Masukkan jumlah stok awal" min="0">
+                        <small id="help-stok-barang" class="text-muted" style="display:none; margin-top:3px;"></small>
                         <div id="err-stok-awal" class="validate-error"></div>
                     </div>
                     <div id="err-global-barang" class="validate-error"></div>

@@ -72,6 +72,7 @@
                   <option value="resepsionis">Resepsionis</option>
                   <option value="dokter">Dokter</option>
                   <option value="paramedis">Paramedis</option>
+                  <option value="admin_gudang">Admin Gudang</option>
                 </select>
                 <div id="roleErr1" class="validate-error"></div>
               </div>

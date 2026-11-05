@@ -186,14 +186,26 @@ Route::get('/pengeluaran', function () {
 	return view('pengeluaran.index');
 });
 
-Route::get('/mitra-vet', function () {
-	return view('mitra-vet.index');
-});
+// Modul Mitra Vet - Hanya aktif pada domain localhost, uat.stellavet.net, dan admin.stellavet.net
+Route::group(['middleware' => function ($request, $next) {
+	$allowedHosts = ['localhost', '127.0.0.1', 'uat.stellavet.net', 'admin.stellavet.net'];
+	if (!in_array($request->getHost(), $allowedHosts)) {
+		if ($request->expectsJson() || $request->is('api/*')) {
+			return response()->json(['message' => 'Modul Mitra Vet tidak tersedia pada domain ini.'], 403);
+		}
+		return redirect('/unauthorized');
+	}
+	return $next($request);
+}], function () {
+	Route::get('/mitra-vet', function () {
+		return view('mitra-vet.index');
+	});
 
-Route::get('/mitra-vet/nota/{id}', 'MitraVetController@notaOrder');
-Route::get('/mitra-vet/nota/{id}/download', 'MitraVetController@downloadNota');
-Route::get('/mitra-vet/orders/customer-pdf', 'MitraVetController@downloadCustomerRecapPdf');
-Route::get('/mitra-vet/orders/{orderId}/invoice-penagihan', 'MitraVetController@downloadInvoicePenagihan');
+	Route::get('/mitra-vet/nota/{id}', 'MitraVetController@notaOrder');
+	Route::get('/mitra-vet/nota/{id}/download', 'MitraVetController@downloadNota');
+	Route::get('/mitra-vet/orders/customer-pdf', 'MitraVetController@downloadCustomerRecapPdf');
+	Route::get('/mitra-vet/orders/{orderId}/invoice-penagihan', 'MitraVetController@downloadInvoicePenagihan');
+});
 
 Route::middleware(['jwt.print'])->group(function () {
     Route::get('pendaftaran/cetak/{id}', 'RegistrasiController@cetakRegistrasi');

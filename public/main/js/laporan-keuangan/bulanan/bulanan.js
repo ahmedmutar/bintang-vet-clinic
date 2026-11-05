@@ -13,7 +13,7 @@ $(document).ready(function() {
   // if (role.toLowerCase() == 'resepsionis') {
 	// 	window.location.href = $('.baseUrl').val() + `/unauthorized`;
 	// } else {
-    if (role.toLowerCase() == 'dokter' || role.toLowerCase() == 'resepsionis') {
+    if (role.toLowerCase() != 'admin') {
       $('#filterCabang').hide();
       $('.section-right-box-title').css('width', 'unset');
       $('.section-right-box-title .btn-download-excel').css('margin-right', 'unset');
@@ -45,7 +45,7 @@ $(document).ready(function() {
   $('#filterCabang').on("select2:unselect", function () { onFilterCabang($(this).val()); });
 
   $('.btn-download-excel').click(function() {
-    const getBranchId = (role.toLowerCase() == 'dokter' || role.toLowerCase('resepsionis')) ? branchId : paramUrlSetup.branchId;
+    const getBranchId = (role.toLowerCase() != 'admin') ? branchId : paramUrlSetup.branchId;
 
     if (getBranchId) {
       $.ajax({

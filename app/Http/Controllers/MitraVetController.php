@@ -20,11 +20,25 @@ use Validator;
 
 class MitraVetController extends Controller
 {
+    // Host yang diizinkan mengakses modul Mitra Vet
+    private const ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'uat.stellavet.net', 'admin.stellavet.net'];
+    // Role yang diizinkan mengakses modul Mitra Vet (Dokter TIDAK memiliki akses)
+    private const MITRA_VET_ROLES = ['admin', 'admin_gudang', 'admin gudang', 'resepsionis'];
+    private const MITRA_VET_ITEM_MANAGERS = ['admin', 'admin_gudang', 'admin gudang'];
+
     /**
      * Helper validasi role akses Mitra Vet
      */
     private function validateRoleAccess(Request $request, array $allowedRoles, $deniedMessage = 'Akses tidak diizinkan untuk role Anda.')
     {
+        // Validasi domain/host yang diizinkan
+        if (!in_array($request->getHost(), self::ALLOWED_HOSTS)) {
+            return response()->json([
+                'message' => 'Modul Mitra Vet tidak tersedia pada domain ini.',
+                'errors'  => ['Akses tidak diizinkan untuk domain ini.'],
+            ], 403);
+        }
+
         $user = $request->user();
         if (!$user) {
             return response()->json([
@@ -53,11 +67,11 @@ class MitraVetController extends Controller
     /**
      * GET /api/mitra-vet/items
      * Daftar barang beserta stok real, harga satuan, nilai aset, total aset
-     * Role: admin, dokter, resepsionis
+     * Role: admin, admin_gudang, resepsionis
      */
     public function index(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'], 'Hanya Admin, Dokter, dan Resepsionis yang dapat mengakses Mitra Vet.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES, 'Hanya Admin, Admin Gudang, dan Resepsionis yang dapat mengakses Mitra Vet.')) {
             return $deny;
         }
 
@@ -133,7 +147,7 @@ class MitraVetController extends Controller
      */
     public function itemDropdown(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -149,11 +163,11 @@ class MitraVetController extends Controller
     /**
      * POST /api/mitra-vet/items
      * Tambah barang baru
-     * Role: admin, dokter
+     * Role: admin, admin_gudang
      */
     public function createItem(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter'], 'Hanya Admin dan Dokter yang dapat menambah barang baru. Resepsionis hanya dapat order barang.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ITEM_MANAGERS, 'Hanya Admin dan Admin Gudang yang dapat menambah barang baru. Resepsionis hanya dapat order barang.')) {
             return $deny;
         }
 
@@ -232,11 +246,11 @@ class MitraVetController extends Controller
     /**
      * PUT /api/mitra-vet/items
      * Edit data barang (nama, satuan, harga) — tidak mengubah stok
-     * Role: admin, dokter
+     * Role: admin, admin_gudang
      */
     public function updateItem(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter'], 'Hanya Admin dan Dokter yang dapat mengubah data barang. Resepsionis hanya dapat order barang.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ITEM_MANAGERS, 'Hanya Admin dan Admin Gudang yang dapat mengubah data barang. Resepsionis hanya dapat order barang.')) {
             return $deny;
         }
 
@@ -246,6 +260,7 @@ class MitraVetController extends Controller
             'satuan'      => 'required|string|max:50',
             'harga_modal' => 'required|numeric|min:0',
             'harga_jual'  => 'required|numeric|min:0',
+            'stok'        => 'nullable|integer|min:0',
         ], [
             'nama_barang.required' => 'Nama barang wajib diisi.',
             'satuan.required'      => 'Satuan barang wajib diisi.',
@@ -253,6 +268,8 @@ class MitraVetController extends Controller
             'harga_modal.numeric'  => 'Harga modal harus berupa angka.',
             'harga_jual.required'  => 'Harga jual wajib diisi.',
             'harga_jual.numeric'   => 'Harga jual harus berupa angka.',
+            'stok.integer'         => 'Stok harus berupa angka bulat.',
+            'stok.min'             => 'Stok tidak boleh kurang dari 0.',
         ]);
 
         if ($validate->fails()) {
@@ -302,19 +319,57 @@ class MitraVetController extends Controller
         $item->profit       = $profit;
         $item->harga_satuan = $hargaJual;
         $item->updated_by   = $request->user()->id;
+
+        // Validasi & Update Stok Barang jika input stok disertakan
+        if ($request->has('stok') && !is_null($request->stok)) {
+            $newStok  = (int) $request->stok;
+            $oldStok  = (int) $item->stok;
+            $userRole = strtolower($request->user()->role ?? '');
+
+            // Admin Gudang HANYA BISA update/tambah stok, TIDAK BISA mengurangi stok
+            if ($newStok < $oldStok && $userRole !== 'admin') {
+                return response()->json([
+                    'message' => 'Akses ditolak.',
+                    'errors'  => ["Admin Gudang tidak diizinkan mengurangi stok barang! Stok saat ini ({$oldStok}) tidak boleh diturunkan menjadi ({$newStok})."],
+                ], 422);
+            }
+
+            if ($newStok > $oldStok) {
+                $selisih = $newStok - $oldStok;
+                MitraVetStockHistory::create([
+                    'item_id'    => $item->id,
+                    'quantity'   => $selisih,
+                    'type'       => 'masuk',
+                    'keterangan' => "Update penambahan stok barang ({$oldStok} -> {$newStok})",
+                    'created_by' => $request->user()->id,
+                ]);
+                $item->stok = $newStok;
+            } elseif ($newStok < $oldStok && $userRole === 'admin') {
+                $selisih = $oldStok - $newStok;
+                MitraVetStockHistory::create([
+                    'item_id'    => $item->id,
+                    'quantity'   => $selisih,
+                    'type'       => 'keluar',
+                    'keterangan' => "Penyesuaian pengurangan stok oleh Admin ({$oldStok} -> {$newStok})",
+                    'created_by' => $request->user()->id,
+                ]);
+                $item->stok = $newStok;
+            }
+        }
+
         $item->save();
 
-        return response()->json(['message' => 'Barang berhasil diubah.'], 200);
+        return response()->json(['message' => 'Barang & stok berhasil diubah.'], 200);
     }
 
     /**
      * POST /api/mitra-vet/tambah-stok
      * Tambah jumlah stok barang yang sudah ada
-     * Role: admin, dokter
+     * Role: admin, admin_gudang
      */
     public function tambahStok(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter'], 'Hanya Admin dan Dokter yang dapat menambah stok barang. Resepsionis hanya dapat order barang.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ITEM_MANAGERS, 'Hanya Admin dan Admin Gudang yang dapat menambah stok barang. Resepsionis hanya dapat order barang.')) {
             return $deny;
         }
 
@@ -390,7 +445,7 @@ class MitraVetController extends Controller
      */
     public function downloadTemplate(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter'], 'Hanya Admin dan Dokter yang dapat mendownload template barang.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ITEM_MANAGERS, 'Hanya Admin dan Admin Gudang yang dapat mendownload template barang.')) {
             return $deny;
         }
 
@@ -400,11 +455,11 @@ class MitraVetController extends Controller
     /**
      * POST /api/mitra-vet/items/upload
      * Upload Excel untuk input massal produk
-     * Role: admin, dokter
+     * Role: admin, admin_gudang
      */
     public function uploadItems(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter'], 'Hanya Admin dan Dokter yang dapat mengupload barang baru. Resepsionis hanya dapat order barang.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ITEM_MANAGERS, 'Hanya Admin dan Admin Gudang yang dapat mengupload barang baru. Resepsionis hanya dapat order barang.')) {
             return $deny;
         }
 
@@ -600,7 +655,7 @@ class MitraVetController extends Controller
      */
     public function getOrders(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -653,6 +708,30 @@ class MitraVetController extends Controller
         $offset       = ($page - 1) * $items_per_page;
         $total_paging = ceil($count_data / $items_per_page);
 
+        // Hitung total keseluruhan (Total Harga, Ongkir, Grand Total) sesuai filter aktif
+        $totalsQuery = DB::table('mitra_vet_orders as o');
+        if ($request->keyword) {
+            $totalsQuery->where(function ($q) use ($request) {
+                $q->where('o.nama_pembeli', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('o.nomor_order', 'like', '%' . $request->keyword . '%')
+                    ->orWhere('o.no_hp', 'like', '%' . $request->keyword . '%');
+            });
+        }
+        if ($request->filled('month') && $request->filled('year')) {
+            $totalsQuery->whereMonth('o.created_at', $request->month)
+                ->whereYear('o.created_at', $request->year);
+        } elseif ($request->filled('year')) {
+            $totalsQuery->whereYear('o.created_at', $request->year);
+        } elseif ($request->filled('month')) {
+            $totalsQuery->whereMonth('o.created_at', $request->month);
+        }
+
+        $totals = $totalsQuery->selectRaw('
+            COALESCE(SUM(o.total_harga), 0) as total_harga_keseluruhan,
+            COALESCE(SUM(o.biaya_ongkir), 0) as total_ongkir_keseluruhan,
+            COALESCE(SUM(o.grand_total), 0) as grand_total_keseluruhan
+        ')->first();
+
         $orders = $query->offset($offset)->limit($items_per_page)->get();
 
         // Ambil rincian barang untuk setiap order yang ditampilkan
@@ -678,8 +757,11 @@ class MitraVetController extends Controller
         }
 
         return response()->json([
-            'total_paging' => $total_paging,
-            'data'         => $orders,
+            'total_paging'             => $total_paging,
+            'data'                     => $orders,
+            'total_harga_keseluruhan'  => (float) ($totals->total_harga_keseluruhan ?? 0),
+            'total_ongkir_keseluruhan' => (float) ($totals->total_ongkir_keseluruhan ?? 0),
+            'grand_total_keseluruhan'   => (float) ($totals->grand_total_keseluruhan ?? 0),
         ], 200);
     }
 
@@ -923,7 +1005,7 @@ class MitraVetController extends Controller
      */
     public function getPiutang(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -1035,7 +1117,7 @@ class MitraVetController extends Controller
      */
     public function bayarCicilan(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -1118,8 +1200,12 @@ class MitraVetController extends Controller
      * GET /api/mitra-vet/piutang/{orderId}/riwayat
      * Ambil riwayat pembayaran cicilan untuk satu order
      */
-    public function getRiwayatCicilan($orderId)
+    public function getRiwayatCicilan(Request $request, $orderId)
     {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
+            return $deny;
+        }
+
         $order = MitraVetOrder::with(['customer', 'payments.creator'])->find($orderId);
         if (!$order) {
             return response()->json(['message' => 'Orderan tidak ditemukan.'], 404);
@@ -1142,9 +1228,14 @@ class MitraVetController extends Controller
             abort(404, 'Orderan tidak ditemukan.');
         }
 
+        // Hitung nominal cicilan per termin (cash basis)
+        $cicilanMasuk = $order->payments->where('cicilan_ke', '>', 0)->count();
+        $sisaTermin   = max(($order->jumlah_termin ?? 1) - $cicilanMasuk, 1);
+        $nominalCicilan = round($order->sisa_tagihan / $sisaTermin);
+
         $filename = 'Invoice-Penagihan-' . str_replace(['/', '\\', ' '], '-', $order->nomor_order) . '.pdf';
 
-        $pdf = \PDF::loadView('mitra-vet.invoice-penagihan-pdf', compact('order'));
+        $pdf = \PDF::loadView('mitra-vet.invoice-penagihan-pdf', compact('order', 'nominalCicilan', 'sisaTermin', 'cicilanMasuk'));
         return $pdf->download($filename);
     }
 
@@ -1189,6 +1280,10 @@ class MitraVetController extends Controller
      */
     public function downloadCustomerRecapPdf(Request $request)
     {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
+            return $deny;
+        }
+
         $customerId = $request->customer_id;
         $year       = $request->year ?: Carbon::now()->year;
         $month      = $request->month;
@@ -1295,7 +1390,7 @@ class MitraVetController extends Controller
      */
     public function chartData(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -1375,7 +1470,7 @@ class MitraVetController extends Controller
      */
     public function getCustomers(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -1393,7 +1488,7 @@ class MitraVetController extends Controller
      */
     public function createCustomer(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -1434,7 +1529,7 @@ class MitraVetController extends Controller
      */
     public function exportOrders(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter', 'resepsionis'])) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ROLES)) {
             return $deny;
         }
 
@@ -1453,11 +1548,11 @@ class MitraVetController extends Controller
     /**
      * GET /api/mitra-vet/stock-histories/export-excel
      * Download log riwayat penambahan stok masuk ke Excel
-     * Role: admin, dokter
+     * Role: admin, admin_gudang
      */
     public function exportStockHistories(Request $request)
     {
-        if ($deny = $this->validateRoleAccess($request, ['admin', 'dokter'], 'Hanya Admin dan Dokter yang dapat mendownload log stok.')) {
+        if ($deny = $this->validateRoleAccess($request, self::MITRA_VET_ITEM_MANAGERS, 'Hanya Admin dan Admin Gudang yang dapat mendownload log stok.')) {
             return $deny;
         }
 

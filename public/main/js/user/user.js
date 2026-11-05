@@ -304,7 +304,8 @@ $(document).ready(function() {
 					$('#noPonselTxt').text(getObj.phone_number);
 
 					$('#namaLengkap').val(getObj.fullname);
-					$('#selectRole').val(getObj.role); $('#selectRole').trigger('change');
+					const currentRole = getObj.role ? getObj.role.toLowerCase().replace(/\s+/g, '_') : '';
+					$('#selectRole').val(currentRole); $('#selectRole').trigger('change');
 					$('#selectCabang').val(getObj.branch_id); $('#selectCabang').trigger('change');
 					$('#selectStatus').val(getObj.status); $('#selectStatus').trigger('change');
 				});

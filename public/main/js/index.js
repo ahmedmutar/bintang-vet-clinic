@@ -1048,7 +1048,7 @@ $(document).ready(function () {
     $(".tidak-pengabaran").hide();
   });
   $('a[href="#clinic"]').on("shown.bs.tab", function () {
-    if (role === "admin" || role === "dokter" || role === "resepsionis" || role === "paramedis") {
+    if (role === "admin" || role === "dokter" || role === "resepsionis" || role === "paramedis" || role === "admin_gudang" || role === "admin gudang") {
       $(".tidak-pengabaran").show();
     }
   });

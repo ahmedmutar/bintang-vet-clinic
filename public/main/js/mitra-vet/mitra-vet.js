@@ -40,9 +40,9 @@ $(document).ready(function () {
 
     // Validasi Akses Role:
     // Admin: Bisa Tambah Barang, Order Barang (mengurangi stok), & Hapus Order
-    // Dokter: Bisa Tambah Barang & Lihat Order (tidak bisa buat/hapus order)
-    // Resepsionis: Hanya Bisa Lihat Order (tidak bisa buat order/tambah barang)
-    // Selain itu: Ditolak / Redirect
+    // Admin Gudang: Bisa Tambah Barang & Stok, Edit Barang, Lihat Order (tidak bisa buat order karena mengurangi stok barang)
+    // Resepsionis: Hanya Bisa Lihat Order & Piutang (tidak bisa buat order/tambah barang)
+    // Dokter: Tidak memiliki akses ke modul Mitra Vet
     const userRole = (typeof role !== 'undefined' ? role.toLowerCase() : '');
 
     if (userRole !== 'admin') {
@@ -103,13 +103,13 @@ $(document).ready(function () {
 
                         let actionBtns = '';
 
-                        // Hanya Admin dan Dokter yang dapat Menambah Stok dan Mengedit Barang
-                        if (userRole === 'admin' || userRole === 'dokter') {
+                        // Hanya Admin dan Admin Gudang yang dapat Menambah Stok dan Mengedit Barang
+                        if (userRole === 'admin' || userRole === 'admin_gudang' || userRole === 'admin gudang') {
                             actionBtns += `
                                 <button class="btn btn-xs btn-success btn-quick-stock" data-id="${item.id}" data-nama="${item.nama_barang}" data-stok="${item.stok}" title="Tambah Stok">
                                     <i class="fa fa-plus"></i> Stok
                                 </button>
-                                <button class="btn btn-xs btn-warning btn-edit-item" data-id="${item.id}" data-nama="${item.nama_barang}" data-satuan="${item.satuan}" data-modal="${item.harga_modal}" data-jual="${item.harga_jual}" title="Edit Barang">
+                                <button class="btn btn-xs btn-warning btn-edit-item" data-id="${item.id}" data-nama="${item.nama_barang}" data-satuan="${item.satuan}" data-modal="${item.harga_modal}" data-jual="${item.harga_jual}" data-stok="${item.stok}" title="Edit Data & Stok Barang">
                                     <i class="fa fa-pencil"></i>
                                 </button>
                             `;
@@ -194,13 +194,28 @@ $(document).ready(function () {
     $(document).on('click', '.btn-edit-item', function () {
         modalActionState = 'edit-item';
         selectedItemId = $(this).data('id');
-        $('#modal-tambah-barang-title').text('Ubah Data Barang');
+        const itemStok = parseInt($(this).data('stok')) || 0;
+
+        $('#modal-tambah-barang-title').text('Ubah Data & Stok Barang');
         $('#input-nama-barang').val($(this).data('nama'));
         $('#input-satuan').val($(this).data('satuan'));
         $('#input-harga-modal').val($(this).data('modal') || 0);
         $('#input-harga-jual').val($(this).data('jual') || 0);
         hitungModalProfit();
-        $('#wrap-stok-awal').hide();
+
+        // Tampilkan field stok untuk update stok barang
+        $('#wrap-stok-awal').show();
+        $('#label-stok-barang').html('Stok Barang <span class="text-danger">*</span>');
+        $('#input-stok-awal').val(itemStok).data('current-stok', itemStok);
+
+        if (userRole === 'admin_gudang' || userRole === 'admin gudang') {
+            $('#input-stok-awal').attr('min', itemStok);
+            $('#help-stok-barang').show().html('<i class="fa fa-info-circle text-warning"></i> <em>Admin Gudang dapat mengupdate/menambah stok, namun tidak dapat mengurangi stok saat ini (' + itemStok + ').</em>');
+        } else {
+            $('#input-stok-awal').attr('min', 0);
+            $('#help-stok-barang').hide();
+        }
+
         $('.validate-error').empty();
         $('#modal-tambah-barang').modal('show');
     });
@@ -212,6 +227,9 @@ $(document).ready(function () {
         const satuan = $('#input-satuan').val().trim();
         const modal = $('#input-harga-modal').val().trim();
         const jual = $('#input-harga-jual').val().trim();
+        const stokInput = $('#input-stok-awal').val().trim();
+        const stokVal = parseInt(stokInput);
+        const currentStok = parseInt($('#input-stok-awal').data('current-stok')) || 0;
 
         let hasError = false;
         if (!nama) { $('#err-nama-barang').text('Nama barang wajib diisi'); hasError = true; }
@@ -222,6 +240,15 @@ $(document).ready(function () {
             $('#err-harga-jual').text('Harga Jual harus lebih besar dari Harga Modal!');
             hasError = true;
         }
+
+        if (stokInput === '' || isNaN(stokVal) || stokVal < 0) {
+            $('#err-stok-awal').text('Jumlah stok harus berupa angka valid (>= 0)');
+            hasError = true;
+        } else if ((userRole === 'admin_gudang' || userRole === 'admin gudang') && modalActionState === 'edit-item' && stokVal < currentStok) {
+            $('#err-stok-awal').text('Admin Gudang tidak dapat mengurangi stok! Stok saat ini (' + currentStok + '), tidak boleh dikurangi.');
+            hasError = true;
+        }
+
         if (hasError) return;
 
         $('#btnSimpanBarang').prop('disabled', true).text('Menyimpan...');
@@ -236,7 +263,8 @@ $(document).ready(function () {
                 nama_barang: nama,
                 satuan: satuan,
                 harga_modal: modal,
-                harga_jual: jual
+                harga_jual: jual,
+                stok: stokVal
             },
             success: function (resp) {
                 $('#modal-tambah-barang').modal('hide');
@@ -654,6 +682,12 @@ $(document).ready(function () {
                 }
 
                 $('#list-orderan-mitra-vet').html(rows);
+
+                // Update grand total keseluruhan di footer tabel
+                $('#tfoot-total-harga-order').text(formatRupiah(resp.total_harga_keseluruhan || 0));
+                $('#tfoot-total-ongkir-order').text(formatRupiah(resp.total_ongkir_keseluruhan || 0));
+                $('#tfoot-grand-total-order').text(formatRupiah(resp.grand_total_keseluruhan || 0));
+
                 renderPagination('#pagination-orderan', resp.total_paging, currentPageOrder, function (p) {
                     currentPageOrder = p;
                     loadOrders();
@@ -661,6 +695,9 @@ $(document).ready(function () {
             },
             error: function () {
                 $('#list-orderan-mitra-vet').html('<tr class="text-center text-danger"><td colspan="11">Gagal memuat orderan.</td></tr>');
+                $('#tfoot-total-harga-order').text('Rp 0');
+                $('#tfoot-total-ongkir-order').text('Rp 0');
+                $('#tfoot-grand-total-order').text('Rp 0');
             }
         });
     }

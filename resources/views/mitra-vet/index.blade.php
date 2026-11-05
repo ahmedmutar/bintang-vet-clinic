@@ -328,6 +328,15 @@
                                 <td colspan="11">Memuat data...</td>
                             </tr>
                         </tbody>
+                        <tfoot>
+                            <tr style="background-color: #f8fafc; font-size: 12.5px; border-top: 2px solid #cbd5e1;">
+                                <td colspan="5" class="text-right" style="vertical-align: middle;"><strong>Grand Total Keseluruhan:</strong></td>
+                                <td style="vertical-align: middle;"><strong id="tfoot-total-harga-order">Rp 0</strong></td>
+                                <td style="vertical-align: middle;"><strong id="tfoot-total-ongkir-order">Rp 0</strong></td>
+                                <td style="vertical-align: middle;"><strong class="text-primary" id="tfoot-grand-total-order" style="font-size: 14px;">Rp 0</strong></td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
                     </table>
                     <ul class="pagination pagination-sm m-t-10px pull-left" id="pagination-orderan"></ul>
                 </div>
